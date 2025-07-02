@@ -1,0 +1,472 @@
+import { useState, useEffect } from "react";
+import Layout from "../components/Layout";
+import { useVideoFilter } from "../context/VideoFilterContext";
+import { LineChart } from '@mui/x-charts';
+import Select from 'react-select';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
+import Paper from '@mui/material/Paper';
+import { FormGroup, FormControlLabel, Checkbox } from "@mui/material";
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from "dayjs";
+import axiosInstance from "../components/AxiosInstance";
+
+var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
+var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+
+function MonthlyView() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [videos, setVideos] = useState([]);
+    const [monthlyData, setMonthlyData] = useState([]);
+    const { videoFilter, setVideoFilter } = useVideoFilter();
+    const [dataView, setDataView] = useState("Views per month line chart");
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [pageNum, setPageNum] = useState(0);
+    const [orderBy, setOrderBy] = useState("month");
+    const [order, setOrder] = useState("asc");
+    const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
+    const [endDate, setEndDate] = useState(dayjs());
+    const [exportDate, setExportDate] = useState(dayjs());
+    const [lineChartVisible, setLineChartVisible] = useState({
+        started: true,
+        finished: true,
+        passed: true,
+        failed: true,
+        unfinished: true
+    });
+
+    useEffect(() => {
+        const checkLoggedIn = async () => {
+            try {
+                const token = localStorage.getItem("accessToken");
+                if (token) {
+                    const config = {
+                        headers: {
+                            "Authorization": `Bearer ${token}`
+                        }
+                    }
+                    await axiosInstance.get("api/user/", config)
+                    .then((response) => {
+                        setIsLoggedIn(true);
+                    })
+                }
+                else {
+                    setIsLoggedIn(false);
+                }
+            }
+            catch (error) {
+                setIsLoggedIn(false);
+            }
+        };
+        checkLoggedIn();
+    }, []);
+
+    useEffect(() => {
+        axiosInstance.get("videos/")
+            .then(res => {
+                const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
+                setVideos(videoList);
+
+                if (!videoFilter) {
+                    setVideoFilter(videoList[0].video_id);
+                }
+            })
+            .catch(err => console.error(err));
+    }, []);
+
+    useEffect(() => {
+        if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
+
+        axiosInstance.get(`videos/${videoFilter}/monthly_views/`)
+            .then(res => {
+                const monthData = res.data.map(month => ({ // Section that adds view_rate for table
+                    ...month,
+                    month: dayjs(month.month),
+                    retention_rate: month.started_views > 0
+                    ? Math.round((month.finished_views / month.started_views) * 100)
+                    : 0, // Makes sure that there's no divide by 0 error
+                    pass_rate: month.total_views > 0
+                    ? Math.round((month.passed_views / month.started_views) * 100)
+                    : 0,
+                }));
+                setMonthlyData(monthData);
+                setPageNum(0);
+            })
+            .catch(err => console.error(err));
+    }, [videoFilter])
+
+    const handleSelectVideoFilterChange = (selectOption) => {
+        setVideoFilter(selectOption.value);
+    }
+
+    const filteredMonthlyData = monthlyData.filter((month) =>
+        (month.month.isSameOrAfter(startDate.startOf("month"), 'month') && 
+        month.month.isSameOrBefore(endDate.endOf("month"), 'month'))
+    );
+
+    const lineChartMonths = filteredMonthlyData.map(monthData => monthData.month.format('MMM YYYY'));
+    const lineChartStartedViews = filteredMonthlyData.map(monthData => monthData.started_views);
+    const lineChartFinishedViews = filteredMonthlyData.map(monthData => monthData.finished_views);
+    const lineChartPassedViews = filteredMonthlyData.map(monthData => monthData.passed_views);
+    const lineChartFailedViews = filteredMonthlyData.map(monthData => monthData.failed_views);
+    const lineChartUnfinishedViews = filteredMonthlyData.map(monthData => monthData.unfinished_views);
+    
+    const handleChangePage = (event, newPageNum) => {
+        setPageNum(newPageNum);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPageNum(0);
+    };
+
+    const handleTableSort = (column) => {
+        const isDesc = orderBy === column && order === "desc";
+        setOrder(isDesc ? "asc" : "desc");
+        setOrderBy(column);
+    };
+    
+    const descendingComparator = (a, b, orderBy) => {
+        const a_val = a[orderBy];
+        const b_val = b[orderBy];
+
+        if (typeof a_val === "string" && typeof b_val === "string") {
+            return b_val.localeCompare(a_val, ['en', 'ja']);
+        }
+
+        if (b_val < a_val) return -1;
+        if (b_val > a_val) return 1;
+        return 0;
+    };
+
+    const getTableComparator = (order, orderBy) => {
+        return order === "desc" 
+            ? (a, b) => descendingComparator(a, b, orderBy)
+            : (a, b) => -descendingComparator(a, b, orderBy);
+    };
+
+    const toggleLineChartVisible = (line) => {
+        setLineChartVisible(prev => ({
+            ...prev,
+            [line]: !prev[line]
+        }));
+    };
+
+    const handleExport = async (month, exportType) => {
+        if (exportType === "filter") {
+            try {
+                const response = await axiosInstance.get(`videos/export/monthly_views/${month}/`, {
+                responseType: "blob",
+            });
+            // Sets up the link to download the CSV, then goes to it and cleans up afterwards
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", `${month}_views_filtered_data.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            } catch (error) {
+                console.error("Error downloading CSV", error);
+            }
+        } else if (exportType === "all") {
+            try {
+                const response = await axiosInstance.get(`videos/export/monthly_views/${month}/all/`, {
+                responseType: "blob",
+            });
+            // Sets up the link to download the CSV, then goes to it and cleans up afterwards
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", `${month}_views_all_data.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            } catch (error) {
+                console.error("Error downloading CSV", error);
+            }
+        }else {
+            console.error("Not accepted export type");
+        }
+    }
+
+
+    return (
+        <Layout>
+            {isLoggedIn ? (
+                <div className="container min-vh-100">
+                    <div className="mx-3 d-flex flex-column">
+                        <div className="my-3 d-flex flex-row justify-content-center">
+                            <h1>Monthly View Performance</h1>
+                        </div>
+                        <div className="my-3 d-flex flex-row flex-wrap justify-content-center">
+                            <h3 className="me-3">Showing monthly data from: </h3>
+                            <Paper className="w-75" elevation={1}>
+                                <Select 
+                                    className="basic-single" 
+                                    classNamePrefix="select"
+                                    value={videos.map(video => ({
+                                        value: video.video_id,
+                                        label: `${video.title} (ID: ${video.video_id})`
+                                    })).find(option => option.value === videoFilter)}
+                                    isSearchable={true}
+                                    name="Video selection"
+                                    options={videos.map(video => ({
+                                        value:video.video_id,
+                                        label:`${video.title} (ID: ${video.video_id})`,
+                                    }))}
+                                    onChange={handleSelectVideoFilterChange}
+                                    styles={{menu:(provided) => ({...provided, zIndex:1500})}}
+                                />
+                            </Paper>
+                        </div>
+                        <div className="my-4 d-flex flex-row flex-wrap justify-content-around">
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Views per month line chart")}>Views per month</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Monthly Data table")}>Monthly Data</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Export")}>Export by month</button>
+                        </div>
+                        {dataView === "Monthly Data table" &&
+                            <div className="d-flex flex-column justify-content-center">
+                                <div className="d-flex flex-row justify-content-center my-3">
+                                    <div className="d-flex flex-row justify-content-around">
+                                        <DatePicker className="mx-1 shadow-sm" label="Start date" 
+                                            views={['year', 'month']}
+                                            value={startDate} 
+                                            onChange={date => setStartDate(date)} 
+                                            disableFuture
+                                            minDate={dayjs('2000-01-01')}
+                                            maxDate={endDate}
+                                        />
+                                        <DatePicker className="mx-1 shadow-sm" label="End date"
+                                            views={['year', 'month']} 
+                                            value={endDate} 
+                                            onChange={date => setEndDate(date)} 
+                                            disableFuture
+                                            minDate={startDate}
+                                            maxDate={dayjs()}
+                                        />
+                                    </div>
+                                </div>
+                                <TableContainer component={Paper} elevation={3}>
+                                    <Table aria-label="Monthly Data table">
+                                        <TableHead>
+                                            <TableRow className="bg-info-subtle">
+                                                <TableCell align="center">
+                                                    <TableSortLabel 
+                                                        active={orderBy === "month"}
+                                                        direction={orderBy === "month" ? order : "asc"}
+                                                        onClick={() => handleTableSort("month")}
+                                                    >
+                                                        Month
+                                                    </TableSortLabel> 
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <TableSortLabel 
+                                                        active={orderBy === "started_views"}
+                                                        direction={orderBy === "started_views" ? order : "desc"}
+                                                        onClick={() => handleTableSort("started_views")}
+                                                    >
+                                                        Started Views
+                                                    </TableSortLabel> 
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <TableSortLabel 
+                                                        active={orderBy === "finished_views"}
+                                                        direction={orderBy === "finished_views" ? order : "desc"}
+                                                        onClick={() => handleTableSort("finished_views")}
+                                                    >
+                                                        Finished Views
+                                                    </TableSortLabel> 
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <TableSortLabel 
+                                                        active={orderBy === "retention_rate"}
+                                                        direction={orderBy === "retention_rate" ? order : "desc"}
+                                                        onClick={() => handleTableSort("retention_rate")}
+                                                    >
+                                                        Retention Rate
+                                                    </TableSortLabel>
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <TableSortLabel 
+                                                        active={orderBy === "passed_views"}
+                                                        direction={orderBy === "passed_views" ? order : "desc"}
+                                                        onClick={() => handleTableSort("passed_views")}
+                                                    >
+                                                        Passed Views
+                                                    </TableSortLabel> 
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <TableSortLabel 
+                                                        active={orderBy === "failed_views"}
+                                                        direction={orderBy === "failed_views" ? order : "desc"}
+                                                        onClick={() => handleTableSort("failed_views")}
+                                                    >
+                                                        Failed Views
+                                                    </TableSortLabel> 
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <TableSortLabel 
+                                                        active={orderBy === "unfinished_views"}
+                                                        direction={orderBy === "unfinished_views" ? order : "desc"}
+                                                        onClick={() => handleTableSort("unfinished_views")}
+                                                    >
+                                                        Unfinished Views
+                                                    </TableSortLabel> 
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <TableSortLabel 
+                                                        active={orderBy === "pass_rate"}
+                                                        direction={orderBy === "pass_rate" ? order : "desc"}
+                                                        onClick={() => handleTableSort("pass_rate")}
+                                                    >
+                                                        Pass Rate
+                                                    </TableSortLabel> 
+                                                </TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {[...filteredMonthlyData].sort(getTableComparator(order, orderBy))
+                                                .slice(pageNum*rowsPerPage, pageNum*rowsPerPage + rowsPerPage)
+                                                .map(monthData => (
+                                                <TableRow key={`${monthData.video.video_id}_${monthData.month}`}>
+                                                    <TableCell className="border" align="center">{monthData.month.format("MMM YYYY")}</TableCell>
+                                                    <TableCell className="border" align="right">
+                                                        {monthData.started_views?.toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell className="border" align="right">
+                                                        {monthData.finished_views?.toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell className="border" align="right">
+                                                        {monthData.retention_rate}%
+                                                    </TableCell>
+                                                    <TableCell className="border" align="right">
+                                                        {monthData.passed_views?.toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell className="border" align="right">
+                                                        {monthData.failed_views?.toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell className="border" align="right">
+                                                        {monthData.unfinished_views?.toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell className="border" align="right">
+                                                        {monthData.pass_rate}%
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                    <TablePagination
+                                        rowsPerPageOptions={[5, 10, 25, 50]}
+                                        component="div"
+                                        count={monthlyData.length}
+                                        rowsPerPage={rowsPerPage}
+                                        page={pageNum}
+                                        onPageChange={handleChangePage}
+                                        onRowsPerPageChange={handleChangeRowsPerPage}
+                                        showFirstButton
+                                        showLastButton
+                                        sx={{
+                                            '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                                            marginBottom: 0,
+                                            }
+                                        }}
+                                    />
+                                </TableContainer>
+                            </div>
+                        } {dataView === "Views per month line chart" &&
+                            <div className="d-flex flex-column justify-content-center">
+                                <div className="d-flex flex-row justify-content-center my-3">
+                                    <div className="d-flex flex-row justify-content-around">
+                                        <DatePicker className="mx-1 shadow-sm" label="Start date" 
+                                            views={['year', 'month']}
+                                            value={startDate} 
+                                            onChange={date => setStartDate(date)} 
+                                            disableFuture
+                                            minDate={dayjs('2000-01-01')}
+                                            maxDate={endDate}
+                                        />
+                                        <DatePicker className="mx-1 shadow-sm" label="End date"
+                                            views={['year', 'month']} 
+                                            value={endDate} 
+                                            onChange={date => setEndDate(date)} 
+                                            disableFuture
+                                            minDate={startDate}
+                                            maxDate={dayjs()}
+                                        />
+                                    </div>
+                                </div>
+                                <FormGroup className="d-flex flex-row justify-content-around">
+                                    <FormControlLabel
+                                        control={
+                                        <Checkbox checked={lineChartVisible.started}  onChange={() => toggleLineChartVisible('started')}/>
+                                        }
+                                        label="Started"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                        <Checkbox checked={lineChartVisible.finished} onChange={() => toggleLineChartVisible('finished')}/>
+                                        }
+                                        label="Finished"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                        <Checkbox checked={lineChartVisible.passed} onChange={() => toggleLineChartVisible('passed')}/>
+                                        }
+                                        label="Passed"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                        <Checkbox checked={lineChartVisible.failed} onChange={() => toggleLineChartVisible('failed')}/>
+                                        }
+                                        label="Failed"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                        <Checkbox checked={lineChartVisible.unfinished} onChange={() => toggleLineChartVisible('unfinished')}/>
+                                        }
+                                        label="Unfinished"
+                                    />
+                                </FormGroup>
+                                <LineChart 
+                                    xAxis={[{scaleType:'point', data:lineChartMonths}]}
+                                    series={[
+                                        lineChartVisible.started && {data:lineChartStartedViews, label:'Started Views', color:"dodgerblue", showMark:false},
+                                        lineChartVisible.finished && {data:lineChartFinishedViews, label:'Finished Views', color:"orange", showMark:false},
+                                        lineChartVisible.passed && {data:lineChartPassedViews, label:'Passed Views', color:"limegreen", showMark:false},
+                                        lineChartVisible.failed && {data:lineChartFailedViews, label:'Failed Views', color:"red", showMark:false},
+                                        lineChartVisible.unfinished && {data:lineChartUnfinishedViews, label:'Unfinished Views', color:"magenta", showMark:false}
+                                    ].filter(Boolean)} // To filter out lines toggled off (false)
+                                    height={400}
+                                />
+                            </div>
+                        } {dataView === "Export" &&
+                            <div className="d-flex flex-column justify-content-center">
+                                <DatePicker className="mx-auto my-2 shadow-sm" label="Month to export" 
+                                    views={['year', 'month']}
+                                    value={exportDate}
+                                    onChange={date => setExportDate(date)} 
+                                    disableFuture
+                                    minDate={dayjs('2000-01-01')}
+                                    maxDate={dayjs()}
+                                />
+                                <div className="d-flex flex-row justify-content-around my-2 mx-auto flex-wrap">
+                                    <button className="mx-2 btn bg-info-subtle" onClick={() => handleExport(exportDate.format("YYYY-MM"), "filter")}>Export (excluding not yet created videos)</button>
+                                    <button className="mx-2 btn bg-info-subtle" onClick={() => handleExport(exportDate.format("YYYY-MM"), "all")}>Export All</button>
+                                </div>
+                            </div>
+                        }
+                        
+                    </div>
+                </div>
+            ) : (
+                <p>You must be logged in to view this page.</p>
+            )}
+        </Layout>
+    )
+}
+
+export default MonthlyView;
