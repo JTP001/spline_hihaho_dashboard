@@ -100,6 +100,21 @@ class Command(BaseCommand):
                             "created_at":i["created_at"],
                         }
                     )
+
+                for q in v_stats["aggregated_statistics"]["questions"]["details"]:
+                    QuestionStats.objects.update_or_create(
+                        video=video_obj,
+                        question_id=q.get("id"),
+                        defaults={
+                            "title":q.get("title") or "",
+                            "type":q.get("type") or "",
+                            "video_time_seconds":q.get("active_at") or 0.0,
+                            "average_answer_time_seconds":0.0, # Initialize to 0 then set later
+                            "total_answered":0,
+                            "total_correctly_answered":0,
+                            "created_at":q["created_at"],
+                        }
+                    )
             
             # Start and end dates
             today = date.today()
@@ -158,21 +173,30 @@ class Command(BaseCommand):
                         }
                     )
             
-            # This assumes there is at least 0 ratings and at most 1 rating per video, specifically for Benesse
-            rating = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/questions/")
-            if rating:
-                count = 0
-                while count < len(rating) and rating[count].get("question_type") != "rating":
-                    count += 1
+            question_list = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/questions/")
+            if question_list:
+                for question in question_list:
+                    QuestionStats.objects.filter(question_id=question.get("id")).update(
+                        average_answer_time_seconds=question.get("average_answer_time_seconds") or 0.0, 
+                        total_answered=question.get("total_given_answers") or 0,
+                        total_correctly_answered=question.get("total_correct_answers") or 0,
+                    )
 
-                if count < len(rating):
+            
+            # This assumes there is at least 0 ratings and at most 1 rating per video, specifically for Benesse
+            if question_list:
+                rating_index = 0
+                while rating_index < len(question_list) and question_list[rating_index].get("question_type") != "rating":
+                    rating_index += 1
+
+                if rating_index < len(question_list):
                     one_star = 0
                     two_star = 0
                     three_star = 0
                     four_star = 0
                     five_star = 0
                     
-                    for rating_category in rating[count].get("answers"):
+                    for rating_category in question_list[rating_index].get("answers"):
                         if rating_category.get("label") == "1":
                             one_star = rating_category.get("answered_count")
                         if rating_category.get("label") == "2":
@@ -186,9 +210,9 @@ class Command(BaseCommand):
 
                     VideoRating.objects.update_or_create(
                         video=video_obj,
-                        rating_id=rating[count].get("id"),
+                        rating_id=question_list[rating_index].get("id"),
                         defaults={
-                            "average_rating":rating[count].get("average_rating") or 0,
+                            "average_rating":question_list[rating_index].get("average_rating") or 0,
                             "one_star":one_star,
                             "two_star":two_star,
                             "three_star":three_star,

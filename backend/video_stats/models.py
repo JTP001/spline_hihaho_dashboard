@@ -53,6 +53,17 @@ class ViewSession(models.Model):
     last_reached_seconds = models.IntegerField()
     last_reached_percent = models.FloatField()
 
+class QuestionStats(models.Model):
+    video = models.ForeignKey(Video, on_delete=models.CASCADE)
+    question_id = models.IntegerField()
+    title = models.CharField()
+    type = models.CharField()
+    video_time_seconds = models.FloatField()
+    average_answer_time_seconds = models.FloatField()
+    total_answered = models.IntegerField()
+    total_correctly_answered = models.IntegerField()
+    created_at = models.DateTimeField()
+
 class VideoRating(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE)
     rating_id = models.IntegerField()

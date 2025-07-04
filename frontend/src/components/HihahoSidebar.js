@@ -4,9 +4,9 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import axiosInstance from './AxiosInstance';
-import HomeIcon from '@mui/icons-material/Home';
 import SummarizeIcon from '@mui/icons-material/Summarize';
 import AdsClickIcon from '@mui/icons-material/AdsClick';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SsidChartIcon from '@mui/icons-material/SsidChart';
 import SlideshowIcon from '@mui/icons-material/Slideshow';
 import LoginIcon from '@mui/icons-material/Login';
@@ -63,6 +63,7 @@ function HihahoSidebar() {
                     <hr className="mx-3" style={{borderWidth: "3px"}} />
                     <MenuItem component={<Link />} to="/summary/" icon={<SummarizeIcon />}> Summary </MenuItem>
                     <MenuItem component={<Link />} to="/interactions/" icon={<AdsClickIcon />}> Interactions </MenuItem>
+                    <MenuItem component={<Link />} to="/questions/" icon={<HelpOutlineIcon />}> Questions </MenuItem>
                     <MenuItem component={<Link />} to="/monthlyview/" icon={<SsidChartIcon />}> Monthly Data </MenuItem>
                     <MenuItem component={<Link />} to="/sessionsview/" icon={<SlideshowIcon />}> Sessions Data </MenuItem>
                     <hr className="mx-3" style={{borderWidth: "3px"}} />

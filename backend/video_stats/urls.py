@@ -14,6 +14,8 @@ urlpatterns = [
     path('export/monthly_views/<str:month>/all/', ViewsByMonthAllExportView.as_view(), name='export_by_month_all'),
     path('view_sessions/', ViewSessionListView.as_view(), name='view_sessions_all'),
     path('<int:video_id>/view_sessions/', ViewSessionByVideoView.as_view(), name='video_view_sessions'),
+    path('questions/', QuestionStatsListView.as_view(), name='questions_all'),
+    path('<int:video_id>/questions/', QuestionStatsByVideoView.as_view(), name='video_questions'),
     path('video_ratings/', VideoRatingListView.as_view(), name='video_ratings_all'),
     path('<int:video_id>/video_ratings/', VideoRatingByVideoView.as_view(), name='video_video_rating'),
 ]

@@ -34,6 +34,13 @@ class ViewSessionSerializer(serializers.ModelSerializer):
         model = ViewSession
         fields = "__all__"
 
+class QuestionStatsSerializer(serializers.ModelSerializer):
+    video = VideoSerializer()
+    
+    class Meta:
+        model = QuestionStats
+        fields = "__all__"
+
 class VideoRatingSerializer(serializers.ModelSerializer):
     video = VideoSerializer()
 

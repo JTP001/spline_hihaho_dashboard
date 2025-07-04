@@ -164,6 +164,19 @@ class ViewSessionByVideoView(generics.ListAPIView):
     def get_queryset(self):
         video_id = self.kwargs["video_id"]
         return ViewSession.objects.filter(video__video_id=video_id)
+    
+class QuestionStatsListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = QuestionStats.objects.all().order_by('-created_at')
+    serializer_class = QuestionStatsSerializer
+
+class QuestionStatsByVideoView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = QuestionStatsSerializer
+
+    def get_queryset(self):
+        video_id = self.kwargs["video_id"]
+        return QuestionStats.objects.filter(video__video_id=video_id)
         
 class VideoRatingListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]

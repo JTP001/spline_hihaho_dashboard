@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Summary from './pages/Summary';
 import Interactions from './pages/Interactions';
+import Questions from './pages/Questions';
 import MonthlyView from './pages/MonthlyView';
 import Settings from './pages/Settings';
 import SessionsView from './pages/SessionsView';
@@ -20,6 +21,7 @@ function App() {
             <Route path='/' element={<Summary />}></Route>
             <Route path='/summary/' element={<Summary />}></Route>
             <Route path='/interactions/' element={<Interactions />}></Route>
+            <Route path='/questions/' element={<Questions />}></Route>
             <Route path='/monthlyview/' element={<MonthlyView />}></Route>
             <Route path='/sessionsview/' element={<SessionsView />}></Route>
             <Route path='/login/' element={<Login />}></Route>

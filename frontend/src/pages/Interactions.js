@@ -398,7 +398,7 @@ function Interactions() {
                                                 <TableCell className="border" align="right">
                                                     {interaction.total_clicks?.toLocaleString()}
                                                 </TableCell>
-                                                <TableCell className="border">{interaction.created_at.format("YYYY-MM-DD HH:mm")}</TableCell>
+                                                <TableCell className="border" align="center">{interaction.created_at.format("YYYY-MM-DD HH:mm")}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
