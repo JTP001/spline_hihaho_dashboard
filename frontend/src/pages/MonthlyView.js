@@ -107,13 +107,6 @@ function MonthlyView() {
         (month.month.isSameOrAfter(startDate.startOf("month"), 'month') && 
         month.month.isSameOrBefore(endDate.endOf("month"), 'month'))
     );
-
-    const lineChartMonths = filteredMonthlyData.map(monthData => monthData.month.format('MMM YYYY'));
-    const lineChartStartedViews = filteredMonthlyData.map(monthData => monthData.started_views);
-    const lineChartFinishedViews = filteredMonthlyData.map(monthData => monthData.finished_views);
-    const lineChartPassedViews = filteredMonthlyData.map(monthData => monthData.passed_views);
-    const lineChartFailedViews = filteredMonthlyData.map(monthData => monthData.failed_views);
-    const lineChartUnfinishedViews = filteredMonthlyData.map(monthData => monthData.unfinished_views);
     
     const handleChangePage = (event, newPageNum) => {
         setPageNum(newPageNum);
@@ -148,6 +141,13 @@ function MonthlyView() {
             ? (a, b) => descendingComparator(a, b, orderBy)
             : (a, b) => -descendingComparator(a, b, orderBy);
     };
+
+    const lineChartMonths = filteredMonthlyData.map(monthData => monthData.month.format('MMM YYYY'));
+    const lineChartStartedViews = filteredMonthlyData.map(monthData => monthData.started_views);
+    const lineChartFinishedViews = filteredMonthlyData.map(monthData => monthData.finished_views);
+    const lineChartPassedViews = filteredMonthlyData.map(monthData => monthData.passed_views);
+    const lineChartFailedViews = filteredMonthlyData.map(monthData => monthData.failed_views);
+    const lineChartUnfinishedViews = filteredMonthlyData.map(monthData => monthData.unfinished_views);
 
     const toggleLineChartVisible = (line) => {
         setLineChartVisible(prev => ({
@@ -233,16 +233,14 @@ function MonthlyView() {
                         </div>
                         {dataView === "Monthly Data table" &&
                             <div className="d-flex flex-column justify-content-center">
-                                <div className="d-flex flex-row justify-content-center my-3">
-                                    <div className="d-flex flex-row justify-content-around">
-                                        <CustomDatePicker 
-                                            startDate={startDate} 
-                                            setStartDate={setStartDate} 
-                                            endDate={endDate} 
-                                            setEndDate={setEndDate} 
-                                            viewsList={['year', 'month']}
-                                        />
-                                    </div>
+                                <div className="d-flex flex-row justify-content-center">
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month']}
+                                    />
                                 </div>
                                 <TableContainer component={Paper} elevation={3}>
                                     <Table aria-label="Monthly Data table">
@@ -373,16 +371,14 @@ function MonthlyView() {
                             </div>
                         } {dataView === "Views per month line chart" &&
                             <div className="d-flex flex-column justify-content-center">
-                                <div className="d-flex flex-row justify-content-center my-3">
-                                    <div className="d-flex flex-row justify-content-around">
-                                        <CustomDatePicker 
-                                            startDate={startDate} 
-                                            setStartDate={setStartDate} 
-                                            endDate={endDate} 
-                                            setEndDate={setEndDate} 
-                                            viewsList={['year', 'month']}
-                                        />
-                                    </div>
+                                <div className="d-flex flex-row justify-content-center">
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month']}
+                                    />
                                 </div>
                                 <FormGroup className="d-flex flex-row justify-content-around">
                                     <FormControlLabel
@@ -430,7 +426,7 @@ function MonthlyView() {
                             </div>
                         } {dataView === "Export" &&
                             <div className="d-flex flex-column justify-content-center">
-                                <DatePicker className="mx-auto my-2 shadow-sm" label="Month to export" 
+                                <DatePicker className="mx-auto my-3 shadow-sm" label="Month to export" 
                                     views={['year', 'month']}
                                     value={exportDate}
                                     onChange={date => setExportDate(date)} 

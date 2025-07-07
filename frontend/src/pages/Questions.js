@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import Layout from "../components/Layout";
 import { useVideoFilter } from "../context/VideoFilterContext";
-import { BarChart } from '@mui/x-charts';
-import { IconButton, Menu, MenuItem, Typography, FormControlLabel, Box, Radio } from '@mui/material';
+import { BarChart, LineChart } from '@mui/x-charts';
+import { IconButton, Menu, MenuItem, Typography, FormControlLabel, Box, Radio, FormGroup, Checkbox, Tooltip } from '@mui/material';
 import FilterListIcon from "@mui/icons-material/FilterList";
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
@@ -34,6 +34,11 @@ function Questions() {
     const difficultQuestionBound = [0, 5, 10, 20, 50, 100, 200, 500];
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
+    const [excludeOpenAndRating, setExcludeOpenAndRating] = useState(false);
+    const [lineChartVisible, setLineChartVisible] = useState({
+        answered: true,
+        correctly_answered: true,
+    });
 
     useEffect(() => {
         const checkLoggedIn = async () => {
@@ -119,7 +124,11 @@ function Questions() {
         });
     }, [questions, searchQuery, difficultQuestionFilter, startDate, endDate]);
 
-    const correctAnswersByType = filteredQuestions.reduce((total, question) => {
+    const correctAnswersByType = filteredQuestions.filter(question => {
+        if (excludeOpenAndRating) {
+            return !(question.type === "rating" || question.type === "essay") // Note "open" questions have type essay, type open is for "entry" questions
+        } else {return question}
+    }).reduce((total, question) => {
         const type = question.type;
         if (!total[type]) {
             total[type] = {"correct": 0, "incorrect": 0};
@@ -168,6 +177,32 @@ function Questions() {
             : (a, b) => -descendingComparator(a, b, orderBy);
     };
 
+    const lineChartQuestions = [...filteredQuestions].sort((a, b) => b.video_time_seconds < a.video_time_seconds)
+        .filter(question => {
+            if (excludeOpenAndRating) {
+                return !(question.type === "rating" || question.type === "essay") // Note "open" questions have type essay, type open is for "entry" questions
+            } else {return question}
+        }).map(question => `${question.title} (${question.video_time_seconds}s)`);
+    const lineChartAnswered = filteredQuestions
+        .filter(question => {
+            if (excludeOpenAndRating) {
+                return !(question.type === "rating" || question.type === "essay") // Note "open" questions have type essay, type open is for "entry" questions
+            } else {return question}
+        }).map(question => question.total_answered);
+    const lineChartCorrectlyAnswered = filteredQuestions
+        .filter(question => {
+            if (excludeOpenAndRating) {
+                return !(question.type === "rating" || question.type === "essay") // Note "open" questions have type essay, type open is for "entry" questions
+            } else {return question}
+        }).map(question => question.total_correctly_answered);
+
+    const toggleLineChartVisible = (line) => {
+        setLineChartVisible(prev => ({
+            ...prev,
+            [line]: !prev[line]
+        }));
+    };
+
     return (
         <Layout>
             {isLoggedIn ? (
@@ -199,6 +234,7 @@ function Questions() {
                         </div>
                         <div className="my-4 d-flex flex-row flex-wrap justify-content-around">
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Correct answers per type graphs")}>Correct Answers per type</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Total answers by questions graph")}>Answers by questions</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions table")}>Sessions table</button>
                         </div>
                         {dataView === "Questions table" &&
@@ -237,15 +273,13 @@ function Questions() {
                                         </Box>
                                     </Menu>
                                 </Paper>
-                                <div className="my-3 d-flex flex-row justify-content-around">
-                                    <CustomDatePicker 
-                                        startDate={startDate} 
-                                        setStartDate={setStartDate} 
-                                        endDate={endDate} 
-                                        setEndDate={setEndDate} 
-                                        viewsList={['year', 'month', 'day']}
-                                    />
-                                </div>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
                             </div>
                             <TableContainer component={Paper} elevation={3}>
                                 <Table aria-label="Questions table">
@@ -374,8 +408,15 @@ function Questions() {
                             </div>
                         } {dataView === "Correct answers per type graphs" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center my-3">
-                                <Paper className="mx-2 d-flex justify-content-center rounded-5" elevation={2}>
+                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                                <Tooltip arrow placement="top" title="Open and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
+                                    {excludeOpenAndRating ? (
+                                        <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(false)}>Include Open and Rating questions</button>
+                                    ) : (
+                                        <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(true)}>Exclude Open and Rating questions</button>
+                                    )}
+                                </Tooltip>
+                                <Paper className="mx-2 my-3 d-flex justify-content-center rounded-5" elevation={2}>
                                     <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
                                         <FilterListIcon />
                                     </IconButton>
@@ -398,15 +439,13 @@ function Questions() {
                                         </Box>
                                     </Menu>
                                 </Paper>
-                                <div className="d-flex flex-row justify-content-around">
-                                    <CustomDatePicker 
-                                        startDate={startDate} 
-                                        setStartDate={setStartDate} 
-                                        endDate={endDate} 
-                                        setEndDate={setEndDate} 
-                                        viewsList={['year', 'month', 'day']}
-                                    />
-                                </div>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
                             </div>
                             <BarChart 
                                 xAxis={[{label:"Question type", data: qTypeBarChartData.map(grouping => grouping.type)}]}
@@ -426,6 +465,40 @@ function Questions() {
                                     },
                                 }}
                             />
+                            </div>
+                        } {dataView === "Total answers by questions graph" &&
+                            <div className="d-flex flex-column justify-content-center">
+                                <div className="d-flex flex-row justify-content-center flex-wrap">
+                                    <FormGroup className="d-flex flex-row my-3">
+                                        <FormControlLabel
+                                            control={
+                                            <Checkbox checked={lineChartVisible.answered}  onChange={() => toggleLineChartVisible('answered')}/>
+                                            }
+                                            label="Answered"
+                                        />
+                                        <FormControlLabel
+                                            control={
+                                            <Checkbox checked={lineChartVisible.correctly_answered} onChange={() => toggleLineChartVisible('correctly_answered')}/>
+                                            }
+                                            label="Correctly answered"
+                                        />
+                                    </FormGroup>
+                                    <Tooltip arrow placement="top" title="Open and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
+                                        {excludeOpenAndRating ? (
+                                            <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(false)}>Include Open and Rating questions</button>
+                                        ) : (
+                                            <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(true)}>Exclude Open and Rating questions</button>
+                                        )}
+                                    </Tooltip>
+                                </div>
+                                <LineChart 
+                                    xAxis={[{scaleType:'point', data:lineChartQuestions}]}
+                                    series={[
+                                        lineChartVisible.answered && {data:lineChartAnswered, label:'Total answers', color:"dodgerblue", showMark:false},
+                                        lineChartVisible.correctly_answered && {data:lineChartCorrectlyAnswered, label:'Total correct answers', color:"orange", showMark:false},
+                                    ].filter(Boolean)} // To filter out lines toggled off (false)
+                                    height={400}
+                                />
                             </div>
                         }
                         

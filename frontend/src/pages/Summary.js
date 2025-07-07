@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import Layout from "../components/Layout";
 import { Link } from "react-router-dom";
 import { useVideoFilter } from '../context/VideoFilterContext';
-import { IconButton, Menu, MenuItem, Typography, Checkbox, FormControlLabel, Box, useControlled } from '@mui/material';
+import { IconButton, Menu, MenuItem, Typography, Checkbox, FormControlLabel, Box } from '@mui/material';
 import FilterListIcon from "@mui/icons-material/FilterList";
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -15,9 +15,9 @@ import SlideshowIcon from '@mui/icons-material/Slideshow';
 import { Paper, InputBase, Tooltip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
+import CustomDatePicker from "../components/CustomDatePicker";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -321,22 +321,13 @@ function Summary() {
                                     </Box>
                                 </Menu>
                             </Paper>
-                            <div className="my-3 d-flex flex-row justify-content-around">
-                                <DatePicker className="mx-1 shadow-sm" label="Start date"
-                                    value={startDate} 
-                                    onChange={date => setStartDate(date)} 
-                                    disableFuture
-                                    minDate={dayjs('2000-01-01')}
-                                    maxDate={endDate}
-                                />
-                                <DatePicker className="mx-1 shadow-sm" label="End date" 
-                                    value={endDate} 
-                                    onChange={date => setEndDate(date)} 
-                                    disableFuture
-                                    minDate={startDate}
-                                    maxDate={dayjs()}
-                                />
-                            </div>
+                            <CustomDatePicker 
+                                startDate={startDate} 
+                                setStartDate={setStartDate} 
+                                endDate={endDate} 
+                                setEndDate={setEndDate} 
+                                viewsList={['year', 'month', 'day']}
+                            />
                         </div>
                         <TableContainer component={Paper} elevation={3}>
                             <Table aria-label="Summary table">

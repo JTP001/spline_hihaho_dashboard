@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 
 function CustomDatePicker({ startDate, setStartDate, endDate, setEndDate, viewsList }) {
     return (
-        <>
+        <div className="my-3 d-flex flex-row justify-content-around">
             <DatePicker className="mx-1 shadow-sm" label="Start date" 
                 views={viewsList}
                 value={startDate} 
@@ -20,7 +20,7 @@ function CustomDatePicker({ startDate, setStartDate, endDate, setEndDate, viewsL
                 minDate={startDate}
                 maxDate={dayjs()}
             />
-        </>
+        </div>
     )
 }
 

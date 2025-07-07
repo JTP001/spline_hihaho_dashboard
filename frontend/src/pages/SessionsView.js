@@ -345,15 +345,13 @@ function SessionsView() {
                                         </Box>
                                     </Menu>
                                 </Paper>
-                                <div className="my-3 d-flex flex-row justify-content-around">
-                                    <CustomDatePicker 
-                                        startDate={startDate} 
-                                        setStartDate={setStartDate} 
-                                        endDate={endDate} 
-                                        setEndDate={setEndDate} 
-                                        viewsList={['year', 'month', 'day']}
-                                    />
-                                </div>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
                             </div>
                             <TableContainer component={Paper} elevation={3}>
                                 <Table aria-label="Sessions table">
@@ -448,22 +446,20 @@ function SessionsView() {
                             </div>
                         } {dataView === "Sessions by os" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center my-3">
-                                <div className="d-flex flex-row justify-content-around">
+                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                                <div className="my-3 d-flex flex-row justify-content-around">
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setSessionByOsChart("Pie")}>Pie Chart</button>
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setSessionByOsChart("Bar")}>Bar Chart</button>
                                 </div>
-                                <div className="d-flex flex-row justify-content-around">
-                                    <CustomDatePicker 
-                                        startDate={startDate} 
-                                        setStartDate={setStartDate} 
-                                        endDate={endDate} 
-                                        setEndDate={setEndDate} 
-                                        viewsList={['year', 'month', 'day']}
-                                    />
-                                </div>
+                                <CustomDatePicker
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
                             </div>
-                            {sessionByOsChart ===  "Pie" &&
+                            {sessionByOsChart === "Pie" &&
                                 <>
                                 <h6 className="text-center">Sessions by OS Pie Chart</h6>
                                 <PieChart 
@@ -497,8 +493,8 @@ function SessionsView() {
                             </div>
                         } {dataView === "Sessions by browser" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center my-3">
-                                <FormControlLabel 
+                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                                <FormControlLabel className="my-3"
                                     control={
                                         <Checkbox 
                                             checked={browserBotToggle} 
@@ -507,15 +503,13 @@ function SessionsView() {
                                     }
                                     label={"Exclude bots and scrapers"}
                                 />
-                                <div className="d-flex flex-row justify-content-around">
-                                    <CustomDatePicker 
-                                        startDate={startDate} 
-                                        setStartDate={setStartDate} 
-                                        endDate={endDate} 
-                                        setEndDate={setEndDate} 
-                                        viewsList={['year', 'month', 'day']}
-                                    />
-                                </div>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
                             </div>
                             <BarChart 
                                 xAxis={[{label:"Browser used", data: browserCountsBarChartData.map(grouping => grouping.browser)}]}
@@ -538,16 +532,14 @@ function SessionsView() {
                             </div>
                         } {dataView === "Device breakdown" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center my-3">
-                                <div className="d-flex flex-row justify-content-around">
-                                    <CustomDatePicker 
-                                        startDate={startDate} 
-                                        setStartDate={setStartDate} 
-                                        endDate={endDate} 
-                                        setEndDate={setEndDate} 
-                                        viewsList={['year', 'month', 'day']}
-                                    />
-                                </div>
+                            <div className="d-flex flex-row justify-content-center">
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
                             </div>
                             <h6 className="text-center">Device Breakdown Pie Chart</h6>
                             <PieChart

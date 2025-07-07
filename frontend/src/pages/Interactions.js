@@ -277,15 +277,13 @@ function Interactions() {
                                         onChange={(e) => setSearchQuery(e.target.value)} 
                                     />
                                 </Paper>
-                                <div className="my-3 d-flex flex-row justify-content-around">
-                                    <CustomDatePicker 
-                                        startDate={startDate} 
-                                        setStartDate={setStartDate} 
-                                        endDate={endDate} 
-                                        setEndDate={setEndDate} 
-                                        viewsList={['year', 'month', 'day']}
-                                    />
-                                </div>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
                             </div>
                             <TableContainer component={Paper} elevation={3}>
                                 <Table aria-label="Interactions table">
@@ -418,20 +416,18 @@ function Interactions() {
                             </div>
                         } {dataView === "Clicks per type graphs" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center my-3">
-                                <div className="d-flex flex-row justify-content-around">
+                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                                <div className="my-3 d-flex flex-row justify-content-around">
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setClicksPerTypeChart("Pie")}>Pie Chart</button>
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setClicksPerTypeChart("Bar")}>Bar Chart</button>
                                 </div>
-                                <div className="d-flex flex-row justify-content-around">
-                                    <CustomDatePicker 
-                                        startDate={startDate} 
-                                        setStartDate={setStartDate} 
-                                        endDate={endDate} 
-                                        setEndDate={setEndDate} 
-                                        viewsList={['year', 'month', 'day']}
-                                    />
-                                </div>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
                             </div>
                             {clicksPerTypeChart === "Pie" &&
                                 <PieChart
@@ -464,20 +460,18 @@ function Interactions() {
                             </div>
                         } {dataView === "Clicks per action type graphs" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center my-3">
-                                <div className="d-flex flex-row justify-content-around">
+                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                                <div className="my-3 d-flex flex-row justify-content-around">
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setClicksPerActionTypeChart("Pie")}>Pie Chart</button>
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setClicksPerActionTypeChart("Bar")}>Bar Chart</button>
                                 </div>
-                                <div className="d-flex flex-row justify-content-around">
-                                    <CustomDatePicker 
-                                        startDate={startDate} 
-                                        setStartDate={setStartDate} 
-                                        endDate={endDate} 
-                                        setEndDate={setEndDate} 
-                                        viewsList={['year', 'month', 'day']}
-                                    />
-                                </div>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
                             </div>
                             <h6 className="text-center">Total clicks per interaction action type</h6>
                             {clicksPerActionTypeChart === "Pie" &&
@@ -513,11 +507,11 @@ function Interactions() {
                             <div className="d-flex flex-column">
                             <div className="d-flex flex-row justify-content-center my-3">
                                 <label className="my-auto">Only include interactions shorter than:</label>
-                                <div class="dropdown">
-                                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
+                                <div className="dropdown">
+                                    <button className="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
                                         >{durationBound}s
                                     </button>
-                                    <ul class="dropdown-menu">
+                                    <ul className="dropdown-menu">
                                         <li><button className="dropdown-item" value={10} onClick={(e) => setDurationBound(e.target.value)}>10s</button></li>
                                         <li><button className="dropdown-item" value={20} onClick={(e) => setDurationBound(e.target.value)}>20s</button></li>
                                         <li><button className="dropdown-item" value={50} onClick={(e) => setDurationBound(e.target.value)}>50s</button></li>
