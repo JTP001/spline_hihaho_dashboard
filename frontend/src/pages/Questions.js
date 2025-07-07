@@ -410,10 +410,10 @@ function Questions() {
                             </div>
                             <BarChart 
                                 xAxis={[{label:"Question type", data: qTypeBarChartData.map(grouping => grouping.type)}]}
-                                yAxis={[{label:"Total correct answers", width:60}]}
+                                yAxis={[{label:"Total answers", width:60}]}
                                 series={[
-                                    {label:"Total correct answers per question type", data: qTypeBarChartData.map(grouping => grouping.correct), color:"#0dcaef", stack:'a'},
-                                    {label:"Total incorrect answers per question type", data: qTypeBarChartData.map(grouping => grouping.incorrect), color:"tomato", stack:'a'}
+                                    {label:"Correct answers", data: qTypeBarChartData.map(grouping => grouping.correct), color:"#0dcaef", stack:'a'},
+                                    {label:"Incorrect answers", data: qTypeBarChartData.map(grouping => grouping.incorrect), color:"tomato", stack:'a'}
                                 ]}
                                 width={700}
                                 height={400}

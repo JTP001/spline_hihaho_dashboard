@@ -8,6 +8,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import AdsClickIcon from '@mui/icons-material/AdsClick';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SsidChartIcon from '@mui/icons-material/SsidChart';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import SlideshowIcon from '@mui/icons-material/Slideshow';
@@ -482,6 +483,9 @@ function Summary() {
                                             <TableCell className="border" align="center">
                                                 <Tooltip arrow title="See interaction details" placement="right-end">
                                                     <Link to="/interactions/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><AdsClickIcon/></IconButton></Link>
+                                                </Tooltip>
+                                                <Tooltip arrow title="See question details" placement="right-end">
+                                                    <Link to="/questions/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><HelpOutlineIcon/></IconButton></Link>
                                                 </Tooltip>
                                                 <Tooltip arrow title="See monthly view details" placement="right-end">
                                                     <Link to="/monthlyview/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><SsidChartIcon/></IconButton></Link>
