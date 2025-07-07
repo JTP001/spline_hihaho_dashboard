@@ -7,10 +7,10 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { Paper, InputBase } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import SearchIcon from '@mui/icons-material/Search';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
+import CustomDatePicker from "../components/CustomDatePicker";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -71,13 +71,15 @@ function SessionsView() {
             .then(res => {
                 const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
                 setVideos(videoList);
-
-                if (!videoFilter) {
-                    setVideoFilter(videoList[0].video_id);
-                }
             })
             .catch(err => console.error(err));
     }, []);
+
+    useEffect(() => {
+        if (!videoFilter && videos.length > 0) {
+            setVideoFilter(videos[0].video_id);
+        }
+    }, [videos, videoFilter, setVideoFilter]);
 
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
@@ -146,7 +148,7 @@ function SessionsView() {
 
             return matchesSearch && matchesDate && matchesFilters;
         });
-    }, [sessions, searchQuery, startDate, endDate]);
+    }, [sessions, searchQuery, startDate, endDate, tableFilters]);
 
     const sessionsByOs = filteredSessions.reduce((session_counts, session) => {
         const key = session.viewer_os;
@@ -344,19 +346,12 @@ function SessionsView() {
                                     </Menu>
                                 </Paper>
                                 <div className="my-3 d-flex flex-row justify-content-around">
-                                    <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                        value={startDate} 
-                                        onChange={date => setStartDate(date)} 
-                                        disableFuture
-                                        minDate={dayjs('2000-01-01')}
-                                        maxDate={endDate}
-                                    />
-                                    <DatePicker className="mx-1 shadow-sm" label="End date" 
-                                        value={endDate} 
-                                        onChange={date => setEndDate(date)} 
-                                        disableFuture
-                                        minDate={startDate}
-                                        maxDate={dayjs()}
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month', 'day']}
                                     />
                                 </div>
                             </div>
@@ -459,19 +454,12 @@ function SessionsView() {
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setSessionByOsChart("Bar")}>Bar Chart</button>
                                 </div>
                                 <div className="d-flex flex-row justify-content-around">
-                                    <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                        value={startDate} 
-                                        onChange={date => setStartDate(date)} 
-                                        disableFuture
-                                        minDate={dayjs('2000-01-01')}
-                                        maxDate={endDate}
-                                    />
-                                    <DatePicker className="mx-1 shadow-sm" label="End date" 
-                                        value={endDate} 
-                                        onChange={date => setEndDate(date)} 
-                                        disableFuture
-                                        minDate={startDate}
-                                        maxDate={dayjs()}
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month', 'day']}
                                     />
                                 </div>
                             </div>
@@ -520,19 +508,12 @@ function SessionsView() {
                                     label={"Exclude bots and scrapers"}
                                 />
                                 <div className="d-flex flex-row justify-content-around">
-                                    <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                        value={startDate} 
-                                        onChange={date => setStartDate(date)} 
-                                        disableFuture
-                                        minDate={dayjs('2000-01-01')}
-                                        maxDate={endDate}
-                                    />
-                                    <DatePicker className="mx-1 shadow-sm" label="End date" 
-                                        value={endDate} 
-                                        onChange={date => setEndDate(date)} 
-                                        disableFuture
-                                        minDate={startDate}
-                                        maxDate={dayjs()}
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month', 'day']}
                                     />
                                 </div>
                             </div>
@@ -559,19 +540,12 @@ function SessionsView() {
                             <div className="d-flex flex-column">
                             <div className="d-flex flex-row justify-content-center my-3">
                                 <div className="d-flex flex-row justify-content-around">
-                                    <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                        value={startDate} 
-                                        onChange={date => setStartDate(date)} 
-                                        disableFuture
-                                        minDate={dayjs('2000-01-01')}
-                                        maxDate={endDate}
-                                    />
-                                    <DatePicker className="mx-1 shadow-sm" label="End date" 
-                                        value={endDate} 
-                                        onChange={date => setEndDate(date)} 
-                                        disableFuture
-                                        minDate={startDate}
-                                        maxDate={dayjs()}
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month', 'day']}
                                     />
                                 </div>
                             </div>

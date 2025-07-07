@@ -1,13 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import Layout from "../components/Layout";
 import { useVideoFilter } from "../context/VideoFilterContext";
+import { BarChart } from '@mui/x-charts';
+import { IconButton, Menu, MenuItem, Typography, FormControlLabel, Box, Radio } from '@mui/material';
+import FilterListIcon from "@mui/icons-material/FilterList";
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { Paper, InputBase } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import SearchIcon from '@mui/icons-material/Search';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
+import CustomDatePicker from "../components/CustomDatePicker";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -19,15 +22,18 @@ function Questions() {
     const [videos, setVideos] = useState([]);
     const [questions, setQuestions] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
-    const [dataView, setDataView] = useState("Sessions by os");
+    const [dataView, setDataView] = useState("Correct answers per type graphs");
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [pageNum, setPageNum] = useState(0);
     const [orderBy, setOrderBy] = useState("question_id");
     const [order, setOrder] = useState("asc");
     const [searchQuery, setSearchQuery] = useState("");
+    const [difficultQuestionFilter, setDifficultQuestionFilter] = useState(0);
+    const [anchorFilterMenu, setAnchorFilterMenu] = useState(null); // Anchors the place the filter menu appears in the DOM
+    const filterMenuOpen = Boolean(anchorFilterMenu); // Filter menu is open when it is not null
+    const difficultQuestionBound = [0, 5, 10, 20, 50, 100, 200, 500];
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
-    const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon"];
 
     useEffect(() => {
         const checkLoggedIn = async () => {
@@ -60,13 +66,15 @@ function Questions() {
             .then(res => {
                 const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
                 setVideos(videoList);
-
-                if (!videoFilter) {
-                    setVideoFilter(videoList[0].video_id);
-                }
             })
             .catch(err => console.error(err));
     }, []);
+
+    useEffect(() => {
+        if (!videoFilter && videos.length > 0) {
+            setVideoFilter(videos[0].video_id);
+        }
+    }, [videos, videoFilter, setVideoFilter]);
 
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
@@ -105,9 +113,26 @@ function Questions() {
                 question.created_at.isSameOrAfter(startDate.startOf("day")) && 
                 question.created_at.isSameOrBefore(endDate.endOf("day"));
 
-            return matchesSearch && matchesDate;
+            const matchesFilter = question.average_answer_time_seconds > difficultQuestionFilter;
+
+            return matchesSearch && matchesDate && matchesFilter;
         });
-    }, [questions, searchQuery, startDate, endDate]);
+    }, [questions, searchQuery, difficultQuestionFilter, startDate, endDate]);
+
+    const correctAnswersByType = filteredQuestions.reduce((total, question) => {
+        const type = question.type;
+        if (!total[type]) {
+            total[type] = {"correct": 0, "incorrect": 0};
+        }
+        total[type]["correct"] += question.total_correctly_answered;
+        total[type]["incorrect"] += (question.total_answered - question.total_correctly_answered);
+        return total
+    }, {});
+
+    const qTypeBarChartData = Object.entries(correctAnswersByType).map(([type, answered_totals]) => ({
+        type,
+        ...answered_totals,
+    }));
 
     const handleChangePage = (event, newPageNum) => {
         setPageNum(newPageNum);
@@ -173,6 +198,7 @@ function Questions() {
                             </Paper>
                         </div>
                         <div className="my-4 d-flex flex-row flex-wrap justify-content-around">
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Correct answers per type graphs")}>Correct Answers per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions table")}>Sessions table</button>
                         </div>
                         {dataView === "Questions table" &&
@@ -188,20 +214,36 @@ function Questions() {
                                         onChange={(e) => setSearchQuery(e.target.value)} 
                                     />
                                 </Paper>
+                                <Paper className="my-3 d-flex justify-content-center rounded-5" elevation={2}>
+                                    <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
+                                        <FilterListIcon />
+                                    </IconButton>
+                                    <Menu anchorEl={anchorFilterMenu} open={filterMenuOpen} onClose={() => setAnchorFilterMenu(null)}>
+                                        <MenuItem disabled>
+                                            <Typography variant="subtitle1">Difficult question bound filter</Typography>
+                                        </MenuItem>
+                                        <Box px={2} className="d-flex flex-column" gap={1}>
+                                            {difficultQuestionBound.map(bound => 
+                                                <FormControlLabel 
+                                                    control={
+                                                        <Radio 
+                                                            checked={difficultQuestionFilter === bound} 
+                                                            onChange={() => setDifficultQuestionFilter(bound)}
+                                                        />
+                                                    }
+                                                    label={`> ${bound} seconds on average`}
+                                                />
+                                            )}
+                                        </Box>
+                                    </Menu>
+                                </Paper>
                                 <div className="my-3 d-flex flex-row justify-content-around">
-                                    <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                        value={startDate} 
-                                        onChange={date => setStartDate(date)} 
-                                        disableFuture
-                                        minDate={dayjs('2000-01-01')}
-                                        maxDate={endDate}
-                                    />
-                                    <DatePicker className="mx-1 shadow-sm" label="End date" 
-                                        value={endDate} 
-                                        onChange={date => setEndDate(date)} 
-                                        disableFuture
-                                        minDate={startDate}
-                                        maxDate={dayjs()}
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month', 'day']}
                                     />
                                 </div>
                             </div>
@@ -257,9 +299,9 @@ function Questions() {
                                             </TableCell>
                                             <TableCell align="center">
                                                 <TableSortLabel 
-                                                    active={orderBy === "total_correctly_answred"}
-                                                    direction={orderBy === "total_correctly_answred" ? order : "desc"}
-                                                    onClick={() => handleTableSort("total_correctly_answred")}
+                                                    active={orderBy === "total_correctly_answered"}
+                                                    direction={orderBy === "total_correctly_answered" ? order : "desc"}
+                                                    onClick={() => handleTableSort("total_correctly_answered")}
                                                 >
                                                     Total Correct Answers
                                                 </TableSortLabel> 
@@ -329,6 +371,61 @@ function Questions() {
                                     }}
                                 />
                             </TableContainer>
+                            </div>
+                        } {dataView === "Correct answers per type graphs" &&
+                            <div className="d-flex flex-column">
+                            <div className="d-flex flex-row justify-content-center my-3">
+                                <Paper className="mx-2 d-flex justify-content-center rounded-5" elevation={2}>
+                                    <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
+                                        <FilterListIcon />
+                                    </IconButton>
+                                    <Menu anchorEl={anchorFilterMenu} open={filterMenuOpen} onClose={() => setAnchorFilterMenu(null)}>
+                                        <MenuItem disabled>
+                                            <Typography variant="subtitle1">Difficult question bound filter</Typography>
+                                        </MenuItem>
+                                        <Box px={2} className="d-flex flex-column" gap={1}>
+                                            {difficultQuestionBound.map(bound => 
+                                                <FormControlLabel 
+                                                    control={
+                                                        <Radio
+                                                            checked={difficultQuestionFilter === bound} 
+                                                            onChange={() => setDifficultQuestionFilter(bound)}
+                                                        />
+                                                    }
+                                                    label={`> ${bound} seconds on average`}
+                                                />
+                                            )}
+                                        </Box>
+                                    </Menu>
+                                </Paper>
+                                <div className="d-flex flex-row justify-content-around">
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month', 'day']}
+                                    />
+                                </div>
+                            </div>
+                            <BarChart 
+                                xAxis={[{label:"Question type", data: qTypeBarChartData.map(grouping => grouping.type)}]}
+                                yAxis={[{label:"Total correct answers", width:60}]}
+                                series={[
+                                    {label:"Total correct answers per question type", data: qTypeBarChartData.map(grouping => grouping.correct), color:"#0dcaef", stack:'a'},
+                                    {label:"Total incorrect answers per question type", data: qTypeBarChartData.map(grouping => grouping.incorrect), color:"tomato", stack:'a'}
+                                ]}
+                                width={700}
+                                height={400}
+                                slotProps={{
+                                    axisLabel: {
+                                    style: {
+                                        fontWeight: 'bold',
+                                        fontSize: '16px',
+                                    },
+                                    },
+                                }}
+                            />
                             </div>
                         }
                         

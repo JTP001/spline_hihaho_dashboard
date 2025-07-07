@@ -5,10 +5,10 @@ import { BarChart, LineChart, PieChart } from '@mui/x-charts';
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { Paper, InputBase } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import SearchIcon from '@mui/icons-material/Search';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
+import CustomDatePicker from "../components/CustomDatePicker";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -23,7 +23,7 @@ function Interactions() {
     const [bucketSize, setBucketSize] = useState(1);
     const [bucketArray, setBucketArray] = useState([]);
     const [durationBound, setDurationBound] = useState(20); // Max allowed duration of interaction in line graph
-    const [dataView, setDataView] = useState("Clicks per type bar graph");
+    const [dataView, setDataView] = useState("Clicks per type graphs");
     const [clicksPerTypeChart, setClicksPerTypeChart] = useState("Bar");
     const [clicksPerActionTypeChart, setClicksPerActionTypeChart] = useState("Pie");
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -66,13 +66,15 @@ function Interactions() {
             .then(res => {
                 const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
                 setVideos(videoList);
-
-                if (!videoFilter) {
-                    setVideoFilter(videoList[0].video_id);
-                }
             })
             .catch(err => console.error(err));
     }, []);
+
+    useEffect(() => {
+        if (!videoFilter && videos.length > 0) {
+            setVideoFilter(videos[0].video_id);
+        }
+    }, [videos, videoFilter, setVideoFilter]);
 
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
@@ -142,13 +144,13 @@ function Interactions() {
         });
     }, [interactions, searchQuery, startDate, endDate]);
 
-    const interactionClicksByType = filteredInteractions.reduce((clicks, interaction) => {
-        const key = interaction.type;
-        if (!clicks[key]) {
-            clicks[key] = 0;
+    const interactionClicksByType = filteredInteractions.reduce((total, interaction) => {
+        const type = interaction.type;
+        if (!total[type]) {
+            total[type] = 0;
         }
-        clicks[key] += interaction.total_clicks;
-        return clicks
+        total[type] += interaction.total_clicks;
+        return total
     }, {});
 
     const iTypeBarChartData = Object.entries(interactionClicksByType).map(([type, total_clicks]) => ({
@@ -257,9 +259,9 @@ function Interactions() {
                             </Paper>
                         </div>
                         <div className="my-4 d-flex flex-row flex-wrap justify-content-around">
-                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks per type bar graph")}>Clicks per type</button>
-                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks per action type bar graph")}>Clicks per action type</button>
-                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks by video duration line graph")}>Clicks by video time</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks per type graphs")}>Clicks per type</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks per action type graphs")}>Clicks per action type</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks by video duration graph")}>Clicks by video time</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Interaction table")}>Interaction Data</button>
                         </div>
                         {dataView === "Interaction table" &&
@@ -276,19 +278,12 @@ function Interactions() {
                                     />
                                 </Paper>
                                 <div className="my-3 d-flex flex-row justify-content-around">
-                                    <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                        value={startDate} 
-                                        onChange={date => setStartDate(date)} 
-                                        disableFuture
-                                        minDate={dayjs('2000-01-01')}
-                                        maxDate={endDate}
-                                    />
-                                    <DatePicker className="mx-1 shadow-sm" label="End date" 
-                                        value={endDate} 
-                                        onChange={date => setEndDate(date)} 
-                                        disableFuture
-                                        minDate={startDate}
-                                        maxDate={dayjs()}
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month', 'day']}
                                     />
                                 </div>
                             </div>
@@ -421,7 +416,7 @@ function Interactions() {
                                 />
                             </TableContainer>
                             </div>
-                        } {dataView === "Clicks per type bar graph" &&
+                        } {dataView === "Clicks per type graphs" &&
                             <div className="d-flex flex-column">
                             <div className="d-flex flex-row justify-content-center my-3">
                                 <div className="d-flex flex-row justify-content-around">
@@ -429,19 +424,12 @@ function Interactions() {
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setClicksPerTypeChart("Bar")}>Bar Chart</button>
                                 </div>
                                 <div className="d-flex flex-row justify-content-around">
-                                    <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                        value={startDate} 
-                                        onChange={date => setStartDate(date)} 
-                                        disableFuture
-                                        minDate={dayjs('2000-01-01')}
-                                        maxDate={endDate}
-                                    />
-                                    <DatePicker className="mx-1 shadow-sm" label="End date" 
-                                        value={endDate} 
-                                        onChange={date => setEndDate(date)} 
-                                        disableFuture
-                                        minDate={startDate}
-                                        maxDate={dayjs()}
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month', 'day']}
                                     />
                                 </div>
                             </div>
@@ -474,7 +462,7 @@ function Interactions() {
                                 />
                             }
                             </div>
-                        } {dataView === "Clicks per action type bar graph" &&
+                        } {dataView === "Clicks per action type graphs" &&
                             <div className="d-flex flex-column">
                             <div className="d-flex flex-row justify-content-center my-3">
                                 <div className="d-flex flex-row justify-content-around">
@@ -482,19 +470,12 @@ function Interactions() {
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setClicksPerActionTypeChart("Bar")}>Bar Chart</button>
                                 </div>
                                 <div className="d-flex flex-row justify-content-around">
-                                    <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                        value={startDate} 
-                                        onChange={date => setStartDate(date)} 
-                                        disableFuture
-                                        minDate={dayjs('2000-01-01')}
-                                        maxDate={endDate}
-                                    />
-                                    <DatePicker className="mx-1 shadow-sm" label="End date" 
-                                        value={endDate} 
-                                        onChange={date => setEndDate(date)} 
-                                        disableFuture
-                                        minDate={startDate}
-                                        maxDate={dayjs()}
+                                    <CustomDatePicker 
+                                        startDate={startDate} 
+                                        setStartDate={setStartDate} 
+                                        endDate={endDate} 
+                                        setEndDate={setEndDate} 
+                                        viewsList={['year', 'month', 'day']}
                                     />
                                 </div>
                             </div>
@@ -528,7 +509,7 @@ function Interactions() {
                                 />
                             }
                             </div>
-                        } {dataView === "Clicks by video duration line graph" &&
+                        } {dataView === "Clicks by video duration graph" &&
                             <div className="d-flex flex-column">
                             <div className="d-flex flex-row justify-content-center my-3">
                                 <label className="my-auto">Only include interactions shorter than:</label>

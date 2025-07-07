@@ -9,6 +9,7 @@ import { FormGroup, FormControlLabel, Checkbox } from "@mui/material";
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
+import CustomDatePicker from "../components/CustomDatePicker";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -67,13 +68,15 @@ function MonthlyView() {
             .then(res => {
                 const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
                 setVideos(videoList);
-
-                if (!videoFilter) {
-                    setVideoFilter(videoList[0].video_id);
-                }
             })
             .catch(err => console.error(err));
     }, []);
+
+    useEffect(() => {
+        if (!videoFilter && videos.length > 0) {
+            setVideoFilter(videos[0].video_id);
+        }
+    }, [videos, videoFilter, setVideoFilter]);
 
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
@@ -232,21 +235,12 @@ function MonthlyView() {
                             <div className="d-flex flex-column justify-content-center">
                                 <div className="d-flex flex-row justify-content-center my-3">
                                     <div className="d-flex flex-row justify-content-around">
-                                        <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                            views={['year', 'month']}
-                                            value={startDate} 
-                                            onChange={date => setStartDate(date)} 
-                                            disableFuture
-                                            minDate={dayjs('2000-01-01')}
-                                            maxDate={endDate}
-                                        />
-                                        <DatePicker className="mx-1 shadow-sm" label="End date"
-                                            views={['year', 'month']} 
-                                            value={endDate} 
-                                            onChange={date => setEndDate(date)} 
-                                            disableFuture
-                                            minDate={startDate}
-                                            maxDate={dayjs()}
+                                        <CustomDatePicker 
+                                            startDate={startDate} 
+                                            setStartDate={setStartDate} 
+                                            endDate={endDate} 
+                                            setEndDate={setEndDate} 
+                                            viewsList={['year', 'month']}
                                         />
                                     </div>
                                 </div>
@@ -381,21 +375,12 @@ function MonthlyView() {
                             <div className="d-flex flex-column justify-content-center">
                                 <div className="d-flex flex-row justify-content-center my-3">
                                     <div className="d-flex flex-row justify-content-around">
-                                        <DatePicker className="mx-1 shadow-sm" label="Start date" 
-                                            views={['year', 'month']}
-                                            value={startDate} 
-                                            onChange={date => setStartDate(date)} 
-                                            disableFuture
-                                            minDate={dayjs('2000-01-01')}
-                                            maxDate={endDate}
-                                        />
-                                        <DatePicker className="mx-1 shadow-sm" label="End date"
-                                            views={['year', 'month']} 
-                                            value={endDate} 
-                                            onChange={date => setEndDate(date)} 
-                                            disableFuture
-                                            minDate={startDate}
-                                            maxDate={dayjs()}
+                                        <CustomDatePicker 
+                                            startDate={startDate} 
+                                            setStartDate={setStartDate} 
+                                            endDate={endDate} 
+                                            setEndDate={setEndDate} 
+                                            viewsList={['year', 'month']}
                                         />
                                     </div>
                                 </div>
