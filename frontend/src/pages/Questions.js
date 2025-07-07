@@ -131,7 +131,13 @@ function Questions() {
             return !(question.type === "rating" || question.type === "essay") // Note "open" questions have type essay, type open is for "entry" questions
         } else {return question}
     }).reduce((total, question) => {
-        const type = question.type;
+        let type = question.type;
+        if (type === "open") {
+            type = "entry"; // Hihaho's typing does not match the naming system, so changing it makes it more obvious on the graph
+        } else if (type === "essay") {
+            type = "open";
+        }
+
         if (!total[type]) {
             total[type] = {"correct": 0, "incorrect": 0};
         }
