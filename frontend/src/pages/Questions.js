@@ -127,8 +127,8 @@ function Questions() {
     }, [questions, searchQuery, difficultQuestionFilter, startDate, endDate]);
 
     const correctAnswersByType = filteredQuestions.filter(question => {
-        if (excludeOpenAndRating) {
-            return !(question.type === "rating" || question.type === "essay") // Note "open" questions have type essay, type open is for "entry" questions
+        if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
+            return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy") 
         } else {return question}
     }).reduce((total, question) => {
         let type = question.type;
@@ -136,6 +136,8 @@ function Questions() {
             type = "entry"; // Hihaho's typing does not match the naming system, so changing it makes it more obvious on the graph
         } else if (type === "essay") {
             type = "open";
+        } else if (type === "vacancy") {
+            type = "form";
         }
 
         if (!total[type]) {
@@ -185,22 +187,22 @@ function Questions() {
             : (a, b) => -descendingComparator(a, b, orderBy);
     };
 
-    const lineChartQuestions = [...filteredQuestions].sort((a, b) => b.video_time_seconds < a.video_time_seconds)
+    const lineChartQuestions = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
         .filter(question => {
-            if (excludeOpenAndRating) {
-                return !(question.type === "rating" || question.type === "essay") // Note "open" questions have type essay, type open is for "entry" questions
+            if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
+                return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy")
             } else {return question}
         }).map(question => `${question.title} (${question.video_time_seconds}s)`);
     const lineChartAnswered = filteredQuestions
         .filter(question => {
-            if (excludeOpenAndRating) {
-                return !(question.type === "rating" || question.type === "essay") // Note "open" questions have type essay, type open is for "entry" questions
+            if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
+                return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy")
             } else {return question}
         }).map(question => question.total_answered);
     const lineChartCorrectlyAnswered = filteredQuestions
         .filter(question => {
-            if (excludeOpenAndRating) {
-                return !(question.type === "rating" || question.type === "essay") // Note "open" questions have type essay, type open is for "entry" questions
+            if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
+                return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy")
             } else {return question}
         }).map(question => question.total_correctly_answered);
 
@@ -493,9 +495,9 @@ function Questions() {
                                     </FormGroup>
                                     <Tooltip arrow placement="top" title="Open and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
                                         {excludeOpenAndRating ? (
-                                            <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(false)}>Include Open and Rating questions</button>
+                                            <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(false)}>Include Open, Form and Rating questions</button>
                                         ) : (
-                                            <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(true)}>Exclude Open and Rating questions</button>
+                                            <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(true)}>Exclude Open, Form and Rating questions</button>
                                         )}
                                     </Tooltip>
                                 </div>
