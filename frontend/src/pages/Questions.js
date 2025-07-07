@@ -88,6 +88,8 @@ function Questions() {
             .then(res => {
                 const questionData = res.data.map(question => ({
                     ...question,
+                    title:(question.title.slice(0, 14) === "<!--TINYMCE-->") ? 
+                        question.title.slice(15) : question.title,
                     created_at:dayjs(question.created_at)
                 }));
                 setQuestions(questionData);
