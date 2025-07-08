@@ -40,6 +40,7 @@ function Questions() {
         correctly_answered: true,
     });
 
+    //----------------------------------Check logged in----------------------------------//
     useEffect(() => {
         const checkLoggedIn = async () => {
             try {
@@ -66,6 +67,7 @@ function Questions() {
         checkLoggedIn();
     }, []);
 
+    //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
         axiosInstance.get("videos/")
             .then(res => {
@@ -80,7 +82,12 @@ function Questions() {
             setVideoFilter(videos[0].video_id);
         }
     }, [videos, videoFilter, setVideoFilter]);
+    
+    const handleSelectVideoFilterChange = (selectOption) => {
+        setVideoFilter(selectOption.value);
+    };
 
+    //----------------------------------Get questions----------------------------------//
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
@@ -96,12 +103,9 @@ function Questions() {
                 setPageNum(0);
             })
             .catch(err => console.error(err));
-    }, [videoFilter])
-    
-    const handleSelectVideoFilterChange = (selectOption) => {
-        setVideoFilter(selectOption.value);
-    }
+    }, [videoFilter]);
 
+    //----------------------------------Handle filtering----------------------------------//
     const filteredQuestions = useMemo(() => {
         const searchTerms = searchQuery.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(term =>
             term.replace(/"/g, "").toLowerCase()
@@ -126,6 +130,43 @@ function Questions() {
         });
     }, [questions, searchQuery, difficultQuestionFilter, startDate, endDate]);
 
+    //----------------------------------Handle pagination----------------------------------//
+    const handleChangePage = (event, newPageNum) => {
+        setPageNum(newPageNum);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPageNum(0);
+    };
+
+    //----------------------------------Handle table sort----------------------------------//
+    const handleTableSort = (column) => {
+        const isDesc = orderBy === column && order === "desc";
+        setOrder(isDesc ? "asc" : "desc");
+        setOrderBy(column);
+    };
+    
+    const descendingComparator = (a, b, orderBy) => {
+        const a_val = a[orderBy];
+        const b_val = b[orderBy];
+
+        if (typeof a_val === "string" && typeof b_val === "string") {
+            return b_val.localeCompare(a_val, ['en', 'ja']);
+        }
+
+        if (b_val < a_val) return -1;
+        if (b_val > a_val) return 1;
+        return 0;
+    };
+
+    const getTableComparator = (order, orderBy) => {
+        return order === "desc" 
+            ? (a, b) => descendingComparator(a, b, orderBy)
+            : (a, b) => -descendingComparator(a, b, orderBy);
+    };
+    
+    //---------------------------Create 'by type' bar chart data---------------------------//
     const correctAnswersByType = filteredQuestions.filter(question => {
         if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
             return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy") 
@@ -153,40 +194,7 @@ function Questions() {
         ...answered_totals,
     }));
 
-    const handleChangePage = (event, newPageNum) => {
-        setPageNum(newPageNum);
-    };
-
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPageNum(0);
-    };
-
-    const handleTableSort = (column) => {
-        const isDesc = orderBy === column && order === "desc";
-        setOrder(isDesc ? "asc" : "desc");
-        setOrderBy(column);
-    };
-    
-    const descendingComparator = (a, b, orderBy) => {
-        const a_val = a[orderBy];
-        const b_val = b[orderBy];
-
-        if (typeof a_val === "string" && typeof b_val === "string") {
-            return b_val.localeCompare(a_val, ['en', 'ja']);
-        }
-
-        if (b_val < a_val) return -1;
-        if (b_val > a_val) return 1;
-        return 0;
-    };
-
-    const getTableComparator = (order, orderBy) => {
-        return order === "desc" 
-            ? (a, b) => descendingComparator(a, b, orderBy)
-            : (a, b) => -descendingComparator(a, b, orderBy);
-    };
-
+    //--------------------Create 'answers by questions' line chart data--------------------//
     const lineChartQuestions = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
         .filter(question => {
             if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
@@ -213,6 +221,7 @@ function Questions() {
         }));
     };
 
+    //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
             {isLoggedIn ? (
