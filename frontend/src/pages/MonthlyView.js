@@ -203,7 +203,7 @@ function MonthlyView() {
         }
     }
 
-
+    //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
             {isLoggedIn ? (

@@ -274,7 +274,7 @@ function SessionsView() {
         }
     }, [filteredSessions, browserBotToggle]);
 
-
+    //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
             {isLoggedIn ? (
