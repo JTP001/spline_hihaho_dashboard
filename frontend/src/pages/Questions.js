@@ -21,8 +21,9 @@ function Questions() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [videos, setVideos] = useState([]);
     const [questions, setQuestions] = useState([]);
+    const [answers, setAnswers] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
-    const [dataView, setDataView] = useState("Correct answers per type graphs");
+    const [dataView, setDataView] = useState("Correct answers per type graph");
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [pageNum, setPageNum] = useState(0);
     const [orderBy, setOrderBy] = useState("question_id");
@@ -94,6 +95,20 @@ function Questions() {
                 }));
                 setQuestions(questionData);
                 setPageNum(0);
+
+                const answerPromises = questionData.map(question =>
+                    axiosInstance.get(`videos/${question.question_id}/question_answers/`)
+                        .then(res => res.data)
+                        .catch(err => {
+                            console.error(err);
+                            return []; // gracefully fail
+                        })
+                );
+                Promise.all(answerPromises).then(answerArrays => {
+                    const all_answers = answerArrays.flat();
+                    setAnswers(all_answers);
+                    console.log(all_answers);
+                });
             })
             .catch(err => console.error(err));
     }, [videoFilter])
@@ -213,6 +228,28 @@ function Questions() {
         }));
     };
 
+    const questionsWithAnswers = filteredQuestions.map(question => ({
+        id:question.question_id,
+        title:question.title,
+        type:question.type,
+        video_time_seconds:question.video_time_seconds,
+        total_answered:question.total_answered,
+        total_correctly_answered:question.total_correctly_answered,
+        answers:answers.filter(answer => answer.question.question_id === question.question_id)
+    }));
+
+    const answersBarChartData = questionsWithAnswers.map(question => {
+        const dataDict = {
+            question:`${question.title} (${question.video_time_seconds}s)`
+        };
+
+        question.answers.forEach(answer => {
+            dataDict[answer.label] = answer.answered_count ?? 0;
+        });
+
+        return dataDict; 
+    });// Returns a list of data dicts
+
     return (
         <Layout>
             {isLoggedIn ? (
@@ -243,8 +280,9 @@ function Questions() {
                             </Paper>
                         </div>
                         <div className="my-4 d-flex flex-row flex-wrap justify-content-around">
-                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Correct answers per type graphs")}>Correct Answers per type</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Correct answers per type graph")}>Correct Answers per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Total answers by questions graph")}>Answers by questions</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Response breakdown graph")}>Response breakdown</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions table")}>Sessions table</button>
                         </div>
                         {dataView === "Questions table" &&
@@ -416,7 +454,7 @@ function Questions() {
                                 />
                             </TableContainer>
                             </div>
-                        } {dataView === "Correct answers per type graphs" &&
+                        } {dataView === "Correct answers per type graph" &&
                             <div className="d-flex flex-column">
                             <div className="d-flex flex-row justify-content-center flex-wrap">
                                 <Tooltip arrow placement="top" title="Open, Form and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
@@ -510,6 +548,32 @@ function Questions() {
                                     height={400}
                                 />
                             </div>
+                        } {dataView === "Response breakdown graph" &&
+                            <>
+                            {console.log(answersBarChartData)}
+                            <BarChart 
+                                dataset={answersBarChartData}
+                                xAxis={[{ scaleType: 'band', dataKey: 'question' }]}
+                                series={Object.keys(answersBarChartData[0] ?? {}) // Getting the keys of a row so any row is fine
+                                    .filter(key => key !== 'question')
+                                    .map(label => ({
+                                        dataKey:label,
+                                        stack:'total',
+                                        label:label
+                                    }))
+                                }
+                                width={700}
+                                height={400}
+                                slotProps={{
+                                    axisLabel: {
+                                    style: {
+                                        fontWeight: 'bold',
+                                        fontSize: '16px',
+                                    },
+                                    },
+                                }}
+                            />
+                            </>
                         }
                         
                     </div>

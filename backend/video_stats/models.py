@@ -64,6 +64,15 @@ class QuestionStats(models.Model):
     total_correctly_answered = models.IntegerField()
     created_at = models.DateTimeField()
 
+class QuestionAnswer(models.Model):
+    question = models.ForeignKey(QuestionStats, on_delete=models.CASCADE)
+    label = models.CharField()
+    answered_count = models.IntegerField()
+    is_correct_answer = models.BooleanField()
+
+    class Meta:
+        unique_together = ('question', 'label')
+
 class VideoRating(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE)
     rating_id = models.IntegerField()

@@ -41,6 +41,13 @@ class QuestionStatsSerializer(serializers.ModelSerializer):
         model = QuestionStats
         fields = "__all__"
 
+class QuestionAnswerSerializer(serializers.ModelSerializer):
+    question = QuestionStatsSerializer()
+    
+    class Meta:
+        model = QuestionAnswer
+        fields = "__all__"
+
 class VideoRatingSerializer(serializers.ModelSerializer):
     video = VideoSerializer()
 
