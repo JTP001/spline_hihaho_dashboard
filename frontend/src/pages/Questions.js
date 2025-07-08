@@ -419,11 +419,11 @@ function Questions() {
                         } {dataView === "Correct answers per type graphs" &&
                             <div className="d-flex flex-column">
                             <div className="d-flex flex-row justify-content-center flex-wrap">
-                                <Tooltip arrow placement="top" title="Open and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
+                                <Tooltip arrow placement="top" title="Open, Form and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
                                     {excludeOpenAndRating ? (
-                                        <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(false)}>Include Open and Rating questions</button>
+                                        <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(false)}>Include Open, Form and Rating questions</button>
                                     ) : (
-                                        <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(true)}>Exclude Open and Rating questions</button>
+                                        <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(true)}>Exclude Open, Form and Rating questions</button>
                                     )}
                                 </Tooltip>
                                 <Paper className="mx-2 my-3 d-flex justify-content-center rounded-5" elevation={2}>
@@ -493,7 +493,7 @@ function Questions() {
                                             label="Correctly answered"
                                         />
                                     </FormGroup>
-                                    <Tooltip arrow placement="top" title="Open and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
+                                    <Tooltip arrow placement="top" title="Open, Form and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
                                         {excludeOpenAndRating ? (
                                             <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(false)}>Include Open, Form and Rating questions</button>
                                         ) : (
