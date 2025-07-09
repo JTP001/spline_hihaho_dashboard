@@ -576,29 +576,7 @@ function Questions() {
                             </div>
                         } {dataView === "Response breakdown graph" &&
                             <>
-                            {console.log(answersBarChartData)}
-                            <BarChart 
-                                dataset={answersBarChartData}
-                                xAxis={[{ scaleType: 'band', dataKey: 'question' }]}
-                                series={Object.keys(answersBarChartData[0] ?? {}) // Getting the keys of a row so any row is fine
-                                    .filter(key => key !== 'question')
-                                    .map(label => ({
-                                        dataKey:label,
-                                        stack:'total',
-                                        label:label
-                                    }))
-                                }
-                                width={700}
-                                height={400}
-                                slotProps={{
-                                    axisLabel: {
-                                    style: {
-                                        fontWeight: 'bold',
-                                        fontSize: '16px',
-                                    },
-                                    },
-                                }}
-                            />
+                            
                             </>
                         }
                         
