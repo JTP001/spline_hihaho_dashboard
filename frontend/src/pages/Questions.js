@@ -99,6 +99,9 @@ function Questions() {
                         question.title.slice(18, -4) : 
                             (question.title.slice(0, 14) === "<!--TINYMCE-->") ? 
                             question.title.slice(15) : question.title,
+                    percent_correct:question.total_answered > 0
+                        ? Math.round((question.total_correctly_answered / question.total_answered) * 100)
+                        : 0, // Makes sure that there's no divide by 0 error
                     created_at:dayjs(question.created_at)
                 }));
                 setQuestions(questionData);
@@ -361,6 +364,15 @@ function Questions() {
                                                     Total Correct Answers
                                                 </TableSortLabel> 
                                             </TableCell>
+                                            <TableCell align="center">
+                                                <TableSortLabel 
+                                                    active={orderBy === "percent_correct"}
+                                                    direction={orderBy === "percent_correct" ? order : "desc"}
+                                                    onClick={() => handleTableSort("percent_correct")}
+                                                >
+                                                    Percent Correct
+                                                </TableSortLabel> 
+                                            </TableCell>
                                             <TableCell align="center"> 
                                                 <TableSortLabel 
                                                     active={orderBy === "created_at"}
@@ -404,6 +416,9 @@ function Questions() {
                                                 <TableCell className="border" align="right">{question.average_answer_time_seconds?.toLocaleString()}s</TableCell>
                                                 <TableCell className="border" align="right">{question.total_answered?.toLocaleString()}</TableCell>
                                                 <TableCell className="border" align="right">{question.total_correctly_answered?.toLocaleString()}</TableCell>
+                                                <TableCell className="border" align="right">
+                                                    {!['open', 'essay', 'vacancy'].includes(question.type) ? `${question.percent_correct}%` : "N/A"}
+                                                </TableCell>
                                                 <TableCell className="border" align="center">{question.created_at.format("YYYY-MM-DD HH:mm")}</TableCell>
                                             </TableRow>
                                         ))}

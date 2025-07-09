@@ -105,8 +105,8 @@ function Summary() {
                     four_star:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.four_star || 0,
                     five_star:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.five_star || 0,
                     view_rate: video.total_views > 0
-                    ? Math.round((video.started_views / video.total_views) * 100)
-                    : 0 // Makes sure that there's no divide by 0 error
+                        ? Math.round((video.started_views / video.total_views) * 100)
+                        : 0 // Makes sure that there's no divide by 0 error
                 }));
 
                 setVideoStats(videoStatsData);
