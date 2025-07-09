@@ -35,6 +35,7 @@ function Interactions() {
     const [endDate, setEndDate] = useState(dayjs());
     const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon"];
 
+    //----------------------------------Check logged in----------------------------------//
     useEffect(() => {
         const checkLoggedIn = async () => {
             try {
@@ -61,6 +62,7 @@ function Interactions() {
         checkLoggedIn();
     }, []);
 
+    //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
         axiosInstance.get("videos/")
             .then(res => {
@@ -75,7 +77,12 @@ function Interactions() {
             setVideoFilter(videos[0].video_id);
         }
     }, [videos, videoFilter, setVideoFilter]);
+    
+    const handleSelectVideoFilterChange = (selectOption) => {
+        setVideoFilter(selectOption.value);
+    }
 
+    //----------------------------------Get interactions----------------------------------//
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
@@ -115,12 +122,9 @@ function Interactions() {
                 }
             })
             .catch(err => console.error(err));
-    }, [videoFilter, durationBound])
+    }, [videoFilter, durationBound]);
 
-    const handleSelectVideoFilterChange = (selectOption) => {
-        setVideoFilter(selectOption.value);
-    }
-
+    //----------------------------------Handle filtering----------------------------------//
     const filteredInteractions = useMemo(() => {
         const searchTerms = searchQuery.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(term =>
             term.replace(/"/g, "").toLowerCase()
@@ -144,6 +148,7 @@ function Interactions() {
         });
     }, [interactions, searchQuery, startDate, endDate]);
 
+    //----------------------------Create 'by type' chart data----------------------------//
     const interactionClicksByType = filteredInteractions.reduce((total, interaction) => {
         const type = interaction.type;
         if (!total[type]) {
@@ -165,6 +170,7 @@ function Interactions() {
         return {id:index, value:grouping.total_clicks, label:`${grouping.type}: ${percent}%`};
     })
 
+    //------------------------Create 'by action type' chart data------------------------//
     const interactionClicksByActionType = filteredInteractions.reduce((clicks, interaction) => {
         let key = interaction.action_type;
         if (interaction.action_type === "No action type selected") {
@@ -194,6 +200,7 @@ function Interactions() {
         return {id:index, value:grouping.total_clicks, label:`${grouping.action_type}: ${percent}%`};
     })
 
+    //----------------------------------Handle pagination----------------------------------//
     const handleChangePage = (event, newPageNum) => {
         setPageNum(newPageNum);
     };
@@ -203,6 +210,7 @@ function Interactions() {
         setPageNum(0);
     };
 
+    //----------------------------------Handle table sort----------------------------------//
     const handleTableSort = (column) => {
         const isDesc = orderBy === column && order === "desc";
         setOrder(isDesc ? "asc" : "desc");
@@ -228,7 +236,7 @@ function Interactions() {
             : (a, b) => -descendingComparator(a, b, orderBy);
     };
 
-
+    //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
             {isLoggedIn ? (

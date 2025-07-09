@@ -49,6 +49,7 @@ function Summary() {
         "Only those specified"
     ]
 
+    //----------------------------------Check logged in----------------------------------//
     useEffect(() => {
         const checkLoggedIn = async () => {
             try {
@@ -75,6 +76,7 @@ function Summary() {
         checkLoggedIn();
     }, []);
     
+    //------------------------------------Get videos------------------------------------//
     useEffect(() => {
         if (!user) return;
 
@@ -86,6 +88,7 @@ function Summary() {
         }
     }, [user]);
 
+    //----------------------------Get video stats and aggregate----------------------------//
     useEffect(() => {
         axiosInstance.get("videos/stats/")
             .then(res => {
@@ -102,8 +105,8 @@ function Summary() {
                     four_star:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.four_star || 0,
                     five_star:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.five_star || 0,
                     view_rate: video.total_views > 0
-                    ? Math.round((video.started_views / video.total_views) * 100)
-                    : 0 // Makes sure that there's no divide by 0 error
+                        ? Math.round((video.started_views / video.total_views) * 100)
+                        : 0 // Makes sure that there's no divide by 0 error
                 }));
 
                 setVideoStats(videoStatsData);
@@ -127,7 +130,52 @@ function Summary() {
             })
             .catch(err => console.error(err));
     }, [videoRatings]);
+    
+    //----------------------------------Handle filtering----------------------------------//
+    const filteredStats = useMemo(() => {
+        const searchTerms = searchQuery.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(term =>
+            term.replace(/"/g, "").toLowerCase()
+        ) || []; // Creates a list of search terms from the query of all words or strings in quotes split by spaces
 
+        return videoStats.filter((video) => {
+            const id = video.video.video_id.toString();
+            const title = video.video.title.toLowerCase();
+
+            const matchesSearch = searchTerms.length === 0 || searchTerms.some(term => 
+                title.includes(term) || id.includes(term)
+            );
+
+            const matchesDate = 
+                video.video.created_date.isSameOrAfter(startDate.startOf("day")) && 
+                video.video.created_date.isSameOrBefore(endDate.endOf("day"));
+
+            const matchesStatus = statusFilters.includes(video.video.status);
+
+            return matchesSearch && matchesDate && matchesStatus;
+        });
+    }, [videoStats, searchQuery, startDate, endDate, statusFilters]);
+
+    //------------------------------Filter aggregated stats------------------------------//
+    useEffect(() => {
+        const aggregated_stats = {
+            num_videos: filteredStats.length,
+            total_views: 0,
+            started_views: 0,
+            finished_views: 0,
+            interaction_clicks: 0
+        };
+
+        filteredStats.forEach(video => {
+            aggregated_stats.total_views += video.total_views;
+            aggregated_stats.started_views += video.started_views;
+            aggregated_stats.finished_views += video.finished_views;
+            aggregated_stats.interaction_clicks += video.interaction_clicks;
+        });
+
+        setFilteredAggrStats(aggregated_stats);
+    }, [filteredStats])
+
+    //----------------------------------Handle pagination----------------------------------//
     const handleChangePage = (event, newPageNum) => {
         setPageNum(newPageNum);
     };
@@ -137,6 +185,7 @@ function Summary() {
         setPageNum(0);
     };
 
+    //----------------------------------Handle table sort----------------------------------//
     const handleTableSort = (column) => {
         const isDesc = orderBy === column && order === "desc";
         setOrder(isDesc ? "asc" : "desc");
@@ -166,6 +215,7 @@ function Summary() {
             : (a, b) => -descendingComparator(a, b, orderBy);
     };
 
+    //---------------------------------Handle table filter---------------------------------//
     const handleStatusFilterToggle = (value) => {
         setStatusFilters((prev) => 
             prev.includes(value) 
@@ -174,48 +224,7 @@ function Summary() {
         );
     }
 
-    const filteredStats = useMemo(() => {
-        const searchTerms = searchQuery.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(term =>
-            term.replace(/"/g, "").toLowerCase()
-        ) || []; // Creates a list of search terms from the query of all words or strings in quotes split by spaces
-
-        return videoStats.filter((video) => {
-            const id = video.video.video_id.toString();
-            const title = video.video.title.toLowerCase();
-
-            const matchesSearch = searchTerms.length === 0 || searchTerms.some(term => 
-                title.includes(term) || id.includes(term)
-            );
-
-            const matchesDate = 
-                video.video.created_date.isSameOrAfter(startDate.startOf("day")) && 
-                video.video.created_date.isSameOrBefore(endDate.endOf("day"));
-
-            const matchesStatus = statusFilters.includes(video.video.status);
-
-            return matchesSearch && matchesDate && matchesStatus;
-        });
-    }, [videoStats, searchQuery, startDate, endDate, statusFilters]);
-
-    useEffect(() => {
-        const aggregated_stats = {
-            num_videos: filteredStats.length,
-            total_views: 0,
-            started_views: 0,
-            finished_views: 0,
-            interaction_clicks: 0
-        };
-
-        filteredStats.forEach(video => {
-            aggregated_stats.total_views += video.total_views;
-            aggregated_stats.started_views += video.started_views;
-            aggregated_stats.finished_views += video.finished_views;
-            aggregated_stats.interaction_clicks += video.interaction_clicks;
-        });
-
-        setFilteredAggrStats(aggregated_stats);
-    }, [filteredStats])
-
+    //---------------------------------Handle JSON export---------------------------------//
     const handleJsonExport = async (video_id) => {
         try {
             const response = await axiosInstance.get(`videos/export/${video_id}/`, {
@@ -235,6 +244,7 @@ function Summary() {
         }
     }
 
+    //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
             {user ? (

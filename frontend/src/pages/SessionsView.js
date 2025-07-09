@@ -40,6 +40,7 @@ function SessionsView() {
     const [endDate, setEndDate] = useState(dayjs());
     const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon"];
 
+    //----------------------------------Check logged in----------------------------------//
     useEffect(() => {
         const checkLoggedIn = async () => {
             try {
@@ -66,6 +67,7 @@ function SessionsView() {
         checkLoggedIn();
     }, []);
 
+    //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
         axiosInstance.get("videos/")
             .then(res => {
@@ -81,6 +83,11 @@ function SessionsView() {
         }
     }, [videos, videoFilter, setVideoFilter]);
 
+    const handleSelectVideoFilterChange = (selectOption) => {
+        setVideoFilter(selectOption.value);
+    };
+
+    //----------------------------------Get session views----------------------------------//
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
@@ -118,12 +125,9 @@ function SessionsView() {
                 }
             })
             .catch(err => console.error(err));
-    }, [videoFilter])
+    }, [videoFilter]);
 
-    const handleSelectVideoFilterChange = (selectOption) => {
-        setVideoFilter(selectOption.value);
-    }
-
+    //----------------------------------Handle filtering----------------------------------//
     const filteredSessions = useMemo(() => {
         const searchTerms = searchQuery.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(term =>
             term.replace(/"/g, "").toLowerCase()
@@ -150,6 +154,7 @@ function SessionsView() {
         });
     }, [sessions, searchQuery, startDate, endDate, tableFilters]);
 
+    //--------------------Create 'session by os' chart data--------------------//
     const sessionsByOs = filteredSessions.reduce((session_counts, session) => {
         const key = session.viewer_os;
         if (!session_counts[key]) {
@@ -171,20 +176,7 @@ function SessionsView() {
         return {id:index, value:grouping.session_counts, label:`${grouping.os}: ${percent}%`};
     });
 
-    useEffect(() => {
-        setBrowserBotFilter(filteredSessions);
-
-        if (browserBotToggle) {
-            const no_bots = filteredSessions.filter((session) => 
-                !session.viewer_browser.toLowerCase().includes("bot") && 
-                !session.viewer_browser.toLowerCase().includes("crawler") && 
-                !session.viewer_browser.toLowerCase().includes("proxy") &&
-                !session.viewer_browser.toLowerCase().includes("spider")
-            );
-            setBrowserBotFilter(no_bots)
-        }
-    }, [filteredSessions, browserBotToggle]);
-
+    //--------------------Create 'session by os' chart data--------------------//
     const sessionsByBrowser = browserBotFilter.reduce((session_counts, session) => {
         let browser = session.viewer_browser;
         if (browser.includes("Chrome")) { // Groups in mobile versions of these browsers to be the same browser, mobile done differently
@@ -223,6 +215,7 @@ function SessionsView() {
         return device_counts;
     }, {mobile:0, desktop:0});
 
+    //----------------------------------Handle pagination----------------------------------//
     const handleChangePage = (event, newPageNum) => {
         setPageNum(newPageNum);
     };
@@ -232,6 +225,7 @@ function SessionsView() {
         setPageNum(0);
     };
 
+    //----------------------------------Handle table sort----------------------------------//
     const handleTableSort = (column) => {
         const isDesc = orderBy === column && order === "desc";
         setOrder(isDesc ? "asc" : "desc");
@@ -257,6 +251,7 @@ function SessionsView() {
             : (a, b) => -descendingComparator(a, b, orderBy);
     };
 
+    //--------------------------------Handle extra filters--------------------------------//
     const handleFilterToggle = (value) => {
         setTableFilters((prev) => 
             prev.includes(value) 
@@ -264,8 +259,22 @@ function SessionsView() {
                 : [...prev, value] // Adds value to filters list if it was not in it
         );
     }
+    
+    useEffect(() => {
+        setBrowserBotFilter(filteredSessions);
 
+        if (browserBotToggle) {
+            const no_bots = filteredSessions.filter((session) => 
+                !session.viewer_browser.toLowerCase().includes("bot") && 
+                !session.viewer_browser.toLowerCase().includes("crawler") && 
+                !session.viewer_browser.toLowerCase().includes("proxy") &&
+                !session.viewer_browser.toLowerCase().includes("spider")
+            );
+            setBrowserBotFilter(no_bots)
+        }
+    }, [filteredSessions, browserBotToggle]);
 
+    //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
             {isLoggedIn ? (

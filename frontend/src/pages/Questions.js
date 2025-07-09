@@ -35,12 +35,13 @@ function Questions() {
     const difficultQuestionBound = [0, 5, 10, 20, 50, 100, 200, 500];
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
-    const [excludeOpenAndRating, setExcludeOpenAndRating] = useState(false);
+    const [excludeOpenAndRating, setExcludeOpenAndRating] = useState(true);
     const [lineChartVisible, setLineChartVisible] = useState({
         answered: true,
         correctly_answered: true,
     });
 
+    //----------------------------------Check logged in----------------------------------//
     useEffect(() => {
         const checkLoggedIn = async () => {
             try {
@@ -67,6 +68,7 @@ function Questions() {
         checkLoggedIn();
     }, []);
 
+    //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
         axiosInstance.get("videos/")
             .then(res => {
@@ -81,7 +83,12 @@ function Questions() {
             setVideoFilter(videos[0].video_id);
         }
     }, [videos, videoFilter, setVideoFilter]);
+    
+    const handleSelectVideoFilterChange = (selectOption) => {
+        setVideoFilter(selectOption.value);
+    };
 
+    //----------------------------------Get questions----------------------------------//
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
@@ -89,8 +96,13 @@ function Questions() {
             .then(res => {
                 const questionData = res.data.map(question => ({
                     ...question,
-                    title:(question.title.slice(0, 14) === "<!--TINYMCE-->") ? 
-                        question.title.slice(15) : question.title,
+                    title:(question.title.slice(0, 18) === "<!--TINYMCE-->\n<p>") ? 
+                        question.title.slice(18, -4) : 
+                            (question.title.slice(0, 14) === "<!--TINYMCE-->") ? 
+                            question.title.slice(15) : question.title,
+                    percent_correct:question.total_answered > 0
+                        ? Math.round((question.total_correctly_answered / question.total_answered) * 100)
+                        : 0, // Makes sure that there's no divide by 0 error
                     created_at:dayjs(question.created_at)
                 }));
                 setQuestions(questionData);
@@ -111,12 +123,9 @@ function Questions() {
                 });
             })
             .catch(err => console.error(err));
-    }, [videoFilter])
-    
-    const handleSelectVideoFilterChange = (selectOption) => {
-        setVideoFilter(selectOption.value);
-    }
+    }, [videoFilter]);
 
+    //----------------------------------Handle filtering----------------------------------//
     const filteredQuestions = useMemo(() => {
         const searchTerms = searchQuery.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(term =>
             term.replace(/"/g, "").toLowerCase()
@@ -141,6 +150,43 @@ function Questions() {
         });
     }, [questions, searchQuery, difficultQuestionFilter, startDate, endDate]);
 
+    //----------------------------------Handle pagination----------------------------------//
+    const handleChangePage = (event, newPageNum) => {
+        setPageNum(newPageNum);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPageNum(0);
+    };
+
+    //----------------------------------Handle table sort----------------------------------//
+    const handleTableSort = (column) => {
+        const isDesc = orderBy === column && order === "desc";
+        setOrder(isDesc ? "asc" : "desc");
+        setOrderBy(column);
+    };
+    
+    const descendingComparator = (a, b, orderBy) => {
+        const a_val = a[orderBy];
+        const b_val = b[orderBy];
+
+        if (typeof a_val === "string" && typeof b_val === "string") {
+            return b_val.localeCompare(a_val, ['en', 'ja']);
+        }
+
+        if (b_val < a_val) return -1;
+        if (b_val > a_val) return 1;
+        return 0;
+    };
+
+    const getTableComparator = (order, orderBy) => {
+        return order === "desc" 
+            ? (a, b) => descendingComparator(a, b, orderBy)
+            : (a, b) => -descendingComparator(a, b, orderBy);
+    };
+    
+    //---------------------------Create 'by type' bar chart data---------------------------//
     const correctAnswersByType = filteredQuestions.filter(question => {
         if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
             return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy") 
@@ -168,40 +214,7 @@ function Questions() {
         ...answered_totals,
     }));
 
-    const handleChangePage = (event, newPageNum) => {
-        setPageNum(newPageNum);
-    };
-
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPageNum(0);
-    };
-
-    const handleTableSort = (column) => {
-        const isDesc = orderBy === column && order === "desc";
-        setOrder(isDesc ? "asc" : "desc");
-        setOrderBy(column);
-    };
-    
-    const descendingComparator = (a, b, orderBy) => {
-        const a_val = a[orderBy];
-        const b_val = b[orderBy];
-
-        if (typeof a_val === "string" && typeof b_val === "string") {
-            return b_val.localeCompare(a_val, ['en', 'ja']);
-        }
-
-        if (b_val < a_val) return -1;
-        if (b_val > a_val) return 1;
-        return 0;
-    };
-
-    const getTableComparator = (order, orderBy) => {
-        return order === "desc" 
-            ? (a, b) => descendingComparator(a, b, orderBy)
-            : (a, b) => -descendingComparator(a, b, orderBy);
-    };
-
+    //--------------------Create 'answers by questions' line chart data--------------------//
     const lineChartQuestions = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
         .filter(question => {
             if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
@@ -250,6 +263,7 @@ function Questions() {
         return dataDict; 
     });// Returns a list of data dicts
 
+    //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
             {isLoggedIn ? (
@@ -283,7 +297,7 @@ function Questions() {
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Correct answers per type graph")}>Correct Answers per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Total answers by questions graph")}>Answers by questions</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Response breakdown graph")}>Response breakdown</button>
-                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions table")}>Sessions table</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions table")}>Questions table</button>
                         </div>
                         {dataView === "Questions table" &&
                             <div className="d-flex flex-column">
@@ -388,6 +402,15 @@ function Questions() {
                                                     Total Correct Answers
                                                 </TableSortLabel> 
                                             </TableCell>
+                                            <TableCell align="center">
+                                                <TableSortLabel 
+                                                    active={orderBy === "percent_correct"}
+                                                    direction={orderBy === "percent_correct" ? order : "desc"}
+                                                    onClick={() => handleTableSort("percent_correct")}
+                                                >
+                                                    Percent Correct
+                                                </TableSortLabel> 
+                                            </TableCell>
                                             <TableCell align="center"> 
                                                 <TableSortLabel 
                                                     active={orderBy === "created_at"}
@@ -431,6 +454,9 @@ function Questions() {
                                                 <TableCell className="border" align="right">{question.average_answer_time_seconds?.toLocaleString()}s</TableCell>
                                                 <TableCell className="border" align="right">{question.total_answered?.toLocaleString()}</TableCell>
                                                 <TableCell className="border" align="right">{question.total_correctly_answered?.toLocaleString()}</TableCell>
+                                                <TableCell className="border" align="right">
+                                                    {!['open', 'essay', 'vacancy'].includes(question.type) ? `${question.percent_correct}%` : "N/A"}
+                                                </TableCell>
                                                 <TableCell className="border" align="center">{question.created_at.format("YYYY-MM-DD HH:mm")}</TableCell>
                                             </TableRow>
                                         ))}

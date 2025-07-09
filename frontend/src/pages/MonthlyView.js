@@ -37,6 +37,7 @@ function MonthlyView() {
         unfinished: true
     });
 
+    //----------------------------------Check logged in----------------------------------//
     useEffect(() => {
         const checkLoggedIn = async () => {
             try {
@@ -63,6 +64,7 @@ function MonthlyView() {
         checkLoggedIn();
     }, []);
 
+    //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
         axiosInstance.get("videos/")
             .then(res => {
@@ -78,6 +80,11 @@ function MonthlyView() {
         }
     }, [videos, videoFilter, setVideoFilter]);
 
+    const handleSelectVideoFilterChange = (selectOption) => {
+        setVideoFilter(selectOption.value);
+    }
+
+    //----------------------------------Get monthly views----------------------------------//
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
@@ -97,17 +104,30 @@ function MonthlyView() {
                 setPageNum(0);
             })
             .catch(err => console.error(err));
-    }, [videoFilter])
+    }, [videoFilter]);
 
-    const handleSelectVideoFilterChange = (selectOption) => {
-        setVideoFilter(selectOption.value);
-    }
-
+    //----------------------------------Handle filtering----------------------------------//
     const filteredMonthlyData = monthlyData.filter((month) =>
         (month.month.isSameOrAfter(startDate.startOf("month"), 'month') && 
         month.month.isSameOrBefore(endDate.endOf("month"), 'month'))
     );
     
+    //--------------------Create 'views by month' line chart data--------------------//
+    const lineChartMonths = filteredMonthlyData.map(monthData => monthData.month.format('MMM YYYY'));
+    const lineChartStartedViews = filteredMonthlyData.map(monthData => monthData.started_views);
+    const lineChartFinishedViews = filteredMonthlyData.map(monthData => monthData.finished_views);
+    const lineChartPassedViews = filteredMonthlyData.map(monthData => monthData.passed_views);
+    const lineChartFailedViews = filteredMonthlyData.map(monthData => monthData.failed_views);
+    const lineChartUnfinishedViews = filteredMonthlyData.map(monthData => monthData.unfinished_views);
+
+    const toggleLineChartVisible = (line) => {
+        setLineChartVisible(prev => ({
+            ...prev,
+            [line]: !prev[line]
+        }));
+    };
+    
+    //----------------------------------Handle pagination----------------------------------//
     const handleChangePage = (event, newPageNum) => {
         setPageNum(newPageNum);
     };
@@ -117,6 +137,7 @@ function MonthlyView() {
         setPageNum(0);
     };
 
+    //----------------------------------Handle table sort----------------------------------//
     const handleTableSort = (column) => {
         const isDesc = orderBy === column && order === "desc";
         setOrder(isDesc ? "asc" : "desc");
@@ -140,20 +161,6 @@ function MonthlyView() {
         return order === "desc" 
             ? (a, b) => descendingComparator(a, b, orderBy)
             : (a, b) => -descendingComparator(a, b, orderBy);
-    };
-
-    const lineChartMonths = filteredMonthlyData.map(monthData => monthData.month.format('MMM YYYY'));
-    const lineChartStartedViews = filteredMonthlyData.map(monthData => monthData.started_views);
-    const lineChartFinishedViews = filteredMonthlyData.map(monthData => monthData.finished_views);
-    const lineChartPassedViews = filteredMonthlyData.map(monthData => monthData.passed_views);
-    const lineChartFailedViews = filteredMonthlyData.map(monthData => monthData.failed_views);
-    const lineChartUnfinishedViews = filteredMonthlyData.map(monthData => monthData.unfinished_views);
-
-    const toggleLineChartVisible = (line) => {
-        setLineChartVisible(prev => ({
-            ...prev,
-            [line]: !prev[line]
-        }));
     };
 
     const handleExport = async (month, exportType) => {
@@ -196,7 +203,7 @@ function MonthlyView() {
         }
     }
 
-
+    //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
             {isLoggedIn ? (
