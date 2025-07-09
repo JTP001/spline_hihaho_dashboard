@@ -34,7 +34,7 @@ function Questions() {
     const difficultQuestionBound = [0, 5, 10, 20, 50, 100, 200, 500];
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
-    const [excludeOpenAndRating, setExcludeOpenAndRating] = useState(false);
+    const [excludeOpenAndRating, setExcludeOpenAndRating] = useState(true);
     const [lineChartVisible, setLineChartVisible] = useState({
         answered: true,
         correctly_answered: true,
@@ -95,8 +95,10 @@ function Questions() {
             .then(res => {
                 const questionData = res.data.map(question => ({
                     ...question,
-                    title:(question.title.slice(0, 14) === "<!--TINYMCE-->") ? 
-                        question.title.slice(15) : question.title,
+                    title:(question.title.slice(0, 18) === "<!--TINYMCE-->\n<p>") ? 
+                        question.title.slice(18, -4) : 
+                            (question.title.slice(0, 14) === "<!--TINYMCE-->") ? 
+                            question.title.slice(15) : question.title,
                     created_at:dayjs(question.created_at)
                 }));
                 setQuestions(questionData);
@@ -254,7 +256,7 @@ function Questions() {
                         <div className="my-4 d-flex flex-row flex-wrap justify-content-around">
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Correct answers per type graphs")}>Correct Answers per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Total answers by questions graph")}>Answers by questions</button>
-                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions table")}>Sessions table</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions table")}>Questions table</button>
                         </div>
                         {dataView === "Questions table" &&
                             <div className="d-flex flex-column">
