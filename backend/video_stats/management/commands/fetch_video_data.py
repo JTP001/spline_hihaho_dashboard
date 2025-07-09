@@ -176,11 +176,30 @@ class Command(BaseCommand):
             question_list = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/questions/")
             if question_list:
                 for question in question_list:
-                    QuestionStats.objects.filter(question_id=question.get("id")).update(
-                        average_answer_time_seconds=question.get("average_answer_time_seconds") or 0.0, 
-                        total_answered=question.get("total_given_answers") or 0,
-                        total_correctly_answered=question.get("total_correct_answers") or 0,
-                    )
+                    try:
+                        question_obj = QuestionStats.objects.get(question_id=question.get("id"))
+                    except QuestionStats.DoesNotExist:
+                        # Skip this question if the object doesn't already exist cause here we just update
+                        continue
+
+                    question_obj.average_answer_time_seconds = question.get("average_answer_time_seconds") or 0.0
+                    question_obj.total_answered = question.get("total_given_answers") or 0
+                    question_obj.total_correctly_answered = question.get("total_correct_answers") or 0
+                    question_obj.save()
+                    
+
+                    if question.get("question_type") in ['mc', 'mr', 'image']: # Only get answers for questions with finite answer possibilities
+                        answer_list = question.get("answers")
+                        if answer_list:
+                            for answer in answer_list:
+                                QuestionAnswer.objects.update_or_create(
+                                    question=question_obj,
+                                    label=answer.get("label"),
+                                    defaults={
+                                        "answered_count":answer.get("answered_count") or 0,
+                                        "is_correct_answer":answer.get("is_correct_answer")
+                                    }
+                                )
 
             
             # This assumes there is at least 0 ratings and at most 1 rating per video, specifically for Benesse

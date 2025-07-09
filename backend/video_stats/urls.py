@@ -16,6 +16,8 @@ urlpatterns = [
     path('<int:video_id>/view_sessions/', ViewSessionByVideoView.as_view(), name='video_view_sessions'),
     path('questions/', QuestionStatsListView.as_view(), name='questions_all'),
     path('<int:video_id>/questions/', QuestionStatsByVideoView.as_view(), name='video_questions'),
+    path('question_answers/', QuestionAnswerListView.as_view(), name='question_answers_all'),
+    path('<int:question_id>/question_answers/', QuestionAnswersByQuestionView.as_view(), name='question_answers'),
     path('video_ratings/', VideoRatingListView.as_view(), name='video_ratings_all'),
     path('<int:video_id>/video_ratings/', VideoRatingByVideoView.as_view(), name='video_video_rating'),
 ]
