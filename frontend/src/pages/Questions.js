@@ -29,17 +29,27 @@ function Questions() {
     const [orderBy, setOrderBy] = useState("question_id");
     const [order, setOrder] = useState("asc");
     const [searchQuery, setSearchQuery] = useState("");
-    const [difficultQuestionFilter, setDifficultQuestionFilter] = useState(0);
-    const [anchorFilterMenu, setAnchorFilterMenu] = useState(null); // Anchors the place the filter menu appears in the DOM
-    const filterMenuOpen = Boolean(anchorFilterMenu); // Filter menu is open when it is not null
-    const difficultQuestionBound = [0, 5, 10, 20, 50, 100, 200, 500];
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
-    const [excludeOpenAndRating, setExcludeOpenAndRating] = useState(true);
+    const [typesIncludeExclude, setTypesIncludeExclude] = useState(false);
     const [lineChartVisible, setLineChartVisible] = useState({
         answered: true,
         correctly_answered: true,
     });
+
+    //-------------------------------Table filter constants-------------------------------//
+    const typeFilterOptions = ['mc', 'mr', 'image', 'entry', 'open', 'essay', 'vacancy', 'rating'];
+    const [typeFilter, setTypeFilter] = useState(typeFilterOptions);
+    const [anchorTypeFilter, setAnchorTypeFilter] = useState(null);
+    const TypeFilterOpen = Boolean(anchorTypeFilter);
+    const avgTimeFilterOptions = [0, 10, 20, 30, 60, 120, 240];
+    const [avgTimeFilter, setAvgTimeFilter] = useState(0);
+    const [anchorAvgTimeFilter, setAnchorAvgTimeFilter] = useState(null);
+    const avgTimeFilterOpen = Boolean(anchorAvgTimeFilter);
+    const correctPercentFilterOptions = ["all", "≥ 25%", "≤ 25%", "≥ 50%", "≤ 50%", "≥ 75%", "≤ 75%"];
+    const [correctPercentFilter, setCorrectPercentFilter] = useState("all");
+    const [anchorCorrectPercentFilter, setAnchorCorrectPercentFilter] = useState(null);
+    const correctPercentFilterOpen = Boolean(anchorCorrectPercentFilter);
 
     //----------------------------------Check logged in----------------------------------//
     useEffect(() => {
@@ -144,11 +154,19 @@ function Questions() {
                 question.created_at.isSameOrAfter(startDate.startOf("day")) && 
                 question.created_at.isSameOrBefore(endDate.endOf("day"));
 
-            const matchesFilter = question.average_answer_time_seconds > difficultQuestionFilter;
+            const matchesTypeFilter = typeFilter.includes(question.type);
+            const matchesAvgTimeFilter = question.average_answer_time_seconds > avgTimeFilter;
+            let matchesCorrectPercentFilter = true;
+            if (correctPercentFilter === "≥ 25%") {matchesCorrectPercentFilter = question.percent_correct >= 25}
+            else if (correctPercentFilter === "≤ 25%") {matchesCorrectPercentFilter = question.percent_correct <= 25}
+            else if (correctPercentFilter === "≥ 50%") {matchesCorrectPercentFilter = question.percent_correct >= 50}
+            else if (correctPercentFilter === "≤ 50%") {matchesCorrectPercentFilter = question.percent_correct <= 50}
+            else if (correctPercentFilter === "≥ 75%") {matchesCorrectPercentFilter = question.percent_correct >= 75}
+            else if (correctPercentFilter === "≤ 75%") {matchesCorrectPercentFilter = question.percent_correct <= 75}
 
-            return matchesSearch && matchesDate && matchesFilter;
+            return matchesSearch && matchesDate && matchesTypeFilter && matchesAvgTimeFilter && matchesCorrectPercentFilter;
         });
-    }, [questions, searchQuery, difficultQuestionFilter, startDate, endDate]);
+    }, [questions, searchQuery, typeFilter, avgTimeFilter, correctPercentFilter, startDate, endDate]);
 
     //----------------------------------Handle pagination----------------------------------//
     const handleChangePage = (event, newPageNum) => {
@@ -187,20 +205,8 @@ function Questions() {
     };
     
     //---------------------------Create 'by type' bar chart data---------------------------//
-    const correctAnswersByType = filteredQuestions.filter(question => {
-        if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
-            return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy") 
-        } else {return question}
-    }).reduce((total, question) => {
+    const correctAnswersByType = filteredQuestions.reduce((total, question) => {
         let type = question.type;
-        if (type === "open") {
-            type = "entry"; // Hihaho's typing does not match the naming system, so changing it makes it more obvious on the graph
-        } else if (type === "essay") {
-            type = "open";
-        } else if (type === "vacancy") {
-            type = "form";
-        }
-
         if (!total[type]) {
             total[type] = {"correct": 0, "incorrect": 0};
         }
@@ -216,23 +222,9 @@ function Questions() {
 
     //--------------------Create 'answers by questions' line chart data--------------------//
     const lineChartQuestions = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
-        .filter(question => {
-            if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
-                return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy")
-            } else {return question}
-        }).map(question => `${question.title} (${question.video_time_seconds}s)`);
-    const lineChartAnswered = filteredQuestions
-        .filter(question => {
-            if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
-                return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy")
-            } else {return question}
-        }).map(question => question.total_answered);
-    const lineChartCorrectlyAnswered = filteredQuestions
-        .filter(question => {
-            if (excludeOpenAndRating) { // Note "open" questions have type essay, type open is for "entry" questions
-                return !(question.type === "rating" || question.type === "essay" || question.type === "vacancy")
-            } else {return question}
-        }).map(question => question.total_correctly_answered);
+        .map(question => `${question.title} (${question.video_time_seconds}s)`);
+    const lineChartAnswered = filteredQuestions.map(question => question.total_answered);
+    const lineChartCorrectlyAnswered = filteredQuestions.map(question => question.total_correctly_answered);
 
     const toggleLineChartVisible = (line) => {
         setLineChartVisible(prev => ({
@@ -262,6 +254,28 @@ function Questions() {
 
         return dataDict; 
     });// Returns a list of data dicts
+
+    //--------------------------------Handle extra filters--------------------------------//
+    const handleTypeFilterToggle = (value) => {
+        setTypeFilter((prev) => 
+            prev.includes(value) 
+                ? prev.filter((val) => val !== value) // Removes value from filters list if it was in it
+                : [...prev, value] // Adds value to filters list if it was not in it
+        );
+    };
+
+    const handleTypesIncludeExclude = (option) => {
+        const noAnswerTypes = ['essay', 'vacancy', 'rating'];
+
+        setTypeFilter((prev) => {
+            if (option === "include") {
+                const newSet = new Set([...prev, ...noAnswerTypes]);
+                return Array.from(newSet);
+            } else if (option === "exclude") {
+                return prev.filter((type) => !noAnswerTypes.includes(type));
+            } else {return prev}
+        });
+    };
 
     //-------------------------------Rendered page elements-------------------------------//
     return (
@@ -312,29 +326,6 @@ function Questions() {
                                         onChange={(e) => setSearchQuery(e.target.value)} 
                                     />
                                 </Paper>
-                                <Paper className="my-3 d-flex justify-content-center rounded-5" elevation={2}>
-                                    <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
-                                        <FilterListIcon />
-                                    </IconButton>
-                                    <Menu anchorEl={anchorFilterMenu} open={filterMenuOpen} onClose={() => setAnchorFilterMenu(null)}>
-                                        <MenuItem disabled>
-                                            <Typography variant="subtitle1">Difficult question bound filter</Typography>
-                                        </MenuItem>
-                                        <Box px={2} className="d-flex flex-column" gap={1}>
-                                            {difficultQuestionBound.map(bound => 
-                                                <FormControlLabel 
-                                                    control={
-                                                        <Radio 
-                                                            checked={difficultQuestionFilter === bound} 
-                                                            onChange={() => setDifficultQuestionFilter(bound)}
-                                                        />
-                                                    }
-                                                    label={`> ${bound} seconds on average`}
-                                                />
-                                            )}
-                                        </Box>
-                                    </Menu>
-                                </Paper>
                                 <CustomDatePicker 
                                     startDate={startDate} 
                                     setStartDate={setStartDate} 
@@ -365,7 +356,34 @@ function Questions() {
                                                     Title
                                                 </TableSortLabel> 
                                             </TableCell>
-                                            <TableCell align="center">Type</TableCell>
+                                            <TableCell align="center">
+                                                <div className="d-flex flex-row">
+                                                Question Type
+                                                <div className="d-flex justify-content-center rounded-5">
+                                                    <IconButton onClick={(e) => setAnchorTypeFilter(anchorTypeFilter ? null : e.currentTarget)}>
+                                                        <FilterListIcon />
+                                                    </IconButton>
+                                                    <Menu anchorEl={anchorTypeFilter} open={TypeFilterOpen} onClose={() => setAnchorTypeFilter(null)}>
+                                                        <MenuItem disabled>
+                                                            <Typography variant="subtitle1">Question type filter</Typography>
+                                                        </MenuItem>
+                                                        <Box px={2} className="d-flex flex-column" gap={1}>
+                                                            {typeFilterOptions.map(option => 
+                                                                <FormControlLabel 
+                                                                    control={
+                                                                        <Checkbox
+                                                                            checked={typeFilter.includes(option)} 
+                                                                            onChange={() => handleTypeFilterToggle(option)}
+                                                                        />
+                                                                    }
+                                                                    label={option}
+                                                                />
+                                                            )}
+                                                        </Box>
+                                                    </Menu>
+                                                </div>
+                                                </div>
+                                            </TableCell>
                                             <TableCell align="center">
                                                 <TableSortLabel 
                                                     active={orderBy === "video_time_seconds"}
@@ -376,13 +394,38 @@ function Questions() {
                                                 </TableSortLabel> 
                                             </TableCell>
                                             <TableCell align="center">
+                                                <div className="d-flex flex-row">
                                                 <TableSortLabel 
                                                     active={orderBy === "average_answer_time_seconds"}
                                                     direction={orderBy === "average_answer_time_seconds" ? order : "desc"}
                                                     onClick={() => handleTableSort("average_answer_time_seconds")}
                                                 >
-                                                    Average Time to Answer
+                                                    Average Seconds to Answer
                                                 </TableSortLabel> 
+                                                <div className="d-flex justify-content-center rounded-5">
+                                                    <IconButton onClick={(e) => setAnchorAvgTimeFilter(anchorAvgTimeFilter ? null : e.currentTarget)}>
+                                                        <FilterListIcon />
+                                                    </IconButton>
+                                                    <Menu anchorEl={anchorAvgTimeFilter} open={avgTimeFilterOpen} onClose={() => setAnchorAvgTimeFilter(null)}>
+                                                        <MenuItem disabled>
+                                                            <Typography variant="subtitle1">Average seconds to answer filter</Typography>
+                                                        </MenuItem>
+                                                        <Box px={2} className="d-flex flex-column" gap={1}>
+                                                            {avgTimeFilterOptions.map(option => 
+                                                                <FormControlLabel 
+                                                                    control={
+                                                                        <Radio 
+                                                                            checked={avgTimeFilter === option} 
+                                                                            onChange={() => setAvgTimeFilter(option)}
+                                                                        />
+                                                                    }
+                                                                    label={`> ${option}s`}
+                                                                />
+                                                            )}
+                                                        </Box>
+                                                    </Menu>
+                                                </div>
+                                                </div>
                                             </TableCell>
                                             <TableCell align="center">
                                                 <TableSortLabel 
@@ -403,6 +446,7 @@ function Questions() {
                                                 </TableSortLabel> 
                                             </TableCell>
                                             <TableCell align="center">
+                                                <div className="d-flex flex-row">
                                                 <TableSortLabel 
                                                     active={orderBy === "percent_correct"}
                                                     direction={orderBy === "percent_correct" ? order : "desc"}
@@ -410,6 +454,30 @@ function Questions() {
                                                 >
                                                     Percent Correct
                                                 </TableSortLabel> 
+                                                <div className="d-flex justify-content-center rounded-5">
+                                                    <IconButton onClick={(e) => setAnchorCorrectPercentFilter(anchorCorrectPercentFilter ? null : e.currentTarget)}>
+                                                        <FilterListIcon />
+                                                    </IconButton>
+                                                    <Menu anchorEl={anchorCorrectPercentFilter} open={correctPercentFilterOpen} onClose={() => setAnchorCorrectPercentFilter(null)}>
+                                                        <MenuItem disabled>
+                                                            <Typography variant="subtitle1">Percent correct filter</Typography>
+                                                        </MenuItem>
+                                                        <Box px={2} className="d-flex flex-column" gap={1}>
+                                                            {correctPercentFilterOptions.map(option => 
+                                                                <FormControlLabel 
+                                                                    control={
+                                                                        <Radio 
+                                                                            checked={correctPercentFilter === option} 
+                                                                            onChange={() => setCorrectPercentFilter(option)}
+                                                                        />
+                                                                    }
+                                                                    label={option}
+                                                                />
+                                                            )}
+                                                        </Box>
+                                                    </Menu>
+                                                </div>
+                                                </div>
                                             </TableCell>
                                             <TableCell align="center"> 
                                                 <TableSortLabel 
@@ -484,30 +552,30 @@ function Questions() {
                             <div className="d-flex flex-column">
                             <div className="d-flex flex-row justify-content-center flex-wrap">
                                 <Tooltip arrow placement="top" title="Open, Form and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
-                                    {excludeOpenAndRating ? (
-                                        <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(false)}>Include Open, Form and Rating questions</button>
+                                    {typesIncludeExclude ? (
+                                        <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("include"); setTypesIncludeExclude(false)}}>Include Open, Form and Rating questions</button>
                                     ) : (
-                                        <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(true)}>Exclude Open, Form and Rating questions</button>
+                                        <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("exclude"); setTypesIncludeExclude(true)}}>Exclude Open, Form and Rating questions</button>
                                     )}
                                 </Tooltip>
                                 <Paper className="mx-2 my-3 d-flex justify-content-center rounded-5" elevation={2}>
-                                    <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
+                                    <IconButton onClick={(e) => setAnchorAvgTimeFilter(anchorAvgTimeFilter ? null : e.currentTarget)}>
                                         <FilterListIcon />
                                     </IconButton>
-                                    <Menu anchorEl={anchorFilterMenu} open={filterMenuOpen} onClose={() => setAnchorFilterMenu(null)}>
+                                    <Menu anchorEl={anchorAvgTimeFilter} open={avgTimeFilterOpen} onClose={() => setAnchorAvgTimeFilter(null)}>
                                         <MenuItem disabled>
-                                            <Typography variant="subtitle1">Difficult question bound filter</Typography>
+                                            <Typography variant="subtitle1">Average seconds to answer filter</Typography>
                                         </MenuItem>
                                         <Box px={2} className="d-flex flex-column" gap={1}>
-                                            {difficultQuestionBound.map(bound => 
+                                            {avgTimeFilterOptions.map(option => 
                                                 <FormControlLabel 
                                                     control={
-                                                        <Radio
-                                                            checked={difficultQuestionFilter === bound} 
-                                                            onChange={() => setDifficultQuestionFilter(bound)}
+                                                        <Radio 
+                                                            checked={avgTimeFilter === option} 
+                                                            onChange={() => setAvgTimeFilter(option)}
                                                         />
                                                     }
-                                                    label={`> ${bound} seconds on average`}
+                                                    label={`> ${option}s`}
                                                 />
                                             )}
                                         </Box>
@@ -558,10 +626,10 @@ function Questions() {
                                         />
                                     </FormGroup>
                                     <Tooltip arrow placement="top" title="Open, Form and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
-                                        {excludeOpenAndRating ? (
-                                            <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(false)}>Include Open, Form and Rating questions</button>
+                                        {typesIncludeExclude ? (
+                                            <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("include"); setTypesIncludeExclude(false)}}>Include Open, Form and Rating questions</button>
                                         ) : (
-                                            <button className="btn bg-info-subtle my-3" onClick={() => setExcludeOpenAndRating(true)}>Exclude Open, Form and Rating questions</button>
+                                            <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("exclude"); setTypesIncludeExclude(true)}}>Exclude Open, Form and Rating questions</button>
                                         )}
                                     </Tooltip>
                                 </div>
