@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import Layout from "../components/Layout";
+import { Link } from "react-router-dom";
 import { useVideoFilter } from "../context/VideoFilterContext";
-import { BarChart, LineChart } from '@mui/x-charts';
+import { BarChart, LineChart, PieChart } from '@mui/x-charts';
 import { IconButton, Menu, MenuItem, Typography, FormControlLabel, Box, Radio, FormGroup, Checkbox, Tooltip } from '@mui/material';
 import FilterListIcon from "@mui/icons-material/FilterList";
+import BarChartIcon from '@mui/icons-material/BarChart';
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { Paper, InputBase } from '@mui/material';
@@ -21,9 +23,11 @@ function Questions() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [videos, setVideos] = useState([]);
     const [questions, setQuestions] = useState([]);
+    const [selectedQuestion, setSelectedQuestion] = useState(null);
     const [answers, setAnswers] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
     const [dataView, setDataView] = useState("Correct answers per type graph");
+    const [responseBreakdownChart, setResponseBreakdownChart] = useState("Bar");
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [pageNum, setPageNum] = useState(0);
     const [orderBy, setOrderBy] = useState("question_id");
@@ -32,6 +36,7 @@ function Questions() {
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
     const [typesIncludeExclude, setTypesIncludeExclude] = useState(false);
+    const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon"];
     const [lineChartVisible, setLineChartVisible] = useState({
         answered: true,
         correctly_answered: true,
@@ -46,7 +51,7 @@ function Questions() {
     const [avgTimeFilter, setAvgTimeFilter] = useState(0);
     const [anchorAvgTimeFilter, setAnchorAvgTimeFilter] = useState(null);
     const avgTimeFilterOpen = Boolean(anchorAvgTimeFilter);
-    const correctPercentFilterOptions = ["all", "≥ 25%", "≤ 25%", "≥ 50%", "≤ 50%", "≥ 75%", "≤ 75%"];
+    const correctPercentFilterOptions = ["all", "= 0%", "≥ 25%", "≤ 25%", "≥ 50%", "≤ 50%", "≥ 75%", "≤ 75%", "= 100%"];
     const [correctPercentFilter, setCorrectPercentFilter] = useState("all");
     const [anchorCorrectPercentFilter, setAnchorCorrectPercentFilter] = useState(null);
     const correctPercentFilterOpen = Boolean(anchorCorrectPercentFilter);
@@ -117,23 +122,24 @@ function Questions() {
                 }));
                 setQuestions(questionData);
                 setPageNum(0);
-
-                const answerPromises = questionData.map(question =>
-                    axiosInstance.get(`videos/${question.question_id}/question_answers/`)
-                        .then(res => res.data)
-                        .catch(err => {
-                            console.error(err);
-                            return []; // gracefully fail
-                        })
+                setSelectedQuestion(questionData.filter((question) => 
+                    !['open', 'essay', 'vacancy', 'rating'].includes(question.type))[0]?.question_id
                 );
-                Promise.all(answerPromises).then(answerArrays => {
-                    const all_answers = answerArrays.flat();
-                    setAnswers(all_answers);
-                    console.log(all_answers);
-                });
             })
             .catch(err => console.error(err));
     }, [videoFilter]);
+
+    useEffect(() => {
+        if (!selectedQuestion) return;
+
+        axiosInstance.get(`videos/${selectedQuestion}/question_answers/`)
+            .then(res => {
+                setAnswers(res.data);
+            })
+            .catch(err => {
+                console.error(err);
+            })
+    }, [selectedQuestion]);
 
     //----------------------------------Handle filtering----------------------------------//
     const filteredQuestions = useMemo(() => {
@@ -163,6 +169,8 @@ function Questions() {
             else if (correctPercentFilter === "≤ 50%") {matchesCorrectPercentFilter = question.percent_correct <= 50}
             else if (correctPercentFilter === "≥ 75%") {matchesCorrectPercentFilter = question.percent_correct >= 75}
             else if (correctPercentFilter === "≤ 75%") {matchesCorrectPercentFilter = question.percent_correct <= 75}
+            else if (correctPercentFilter === "= 0%") {matchesCorrectPercentFilter = question.percent_correct == 0}
+            else if (correctPercentFilter === "= 100%") {matchesCorrectPercentFilter = question.percent_correct == 100}
 
             return matchesSearch && matchesDate && matchesTypeFilter && matchesAvgTimeFilter && matchesCorrectPercentFilter;
         });
@@ -232,28 +240,18 @@ function Questions() {
             [line]: !prev[line]
         }));
     };
+    
+    //--------------------Create 'answered count by question' chart data--------------------//
+    const answeredByQuestionBarData = answers.filter((answer) => answer.question.question_id === selectedQuestion)
+        .map((answer) => ({label:answer.label, value:answer.answered_count, color:answer.is_correct_answer ? "#0dcaef" : "tomato"}));
 
-    const questionsWithAnswers = filteredQuestions.map(question => ({
-        id:question.question_id,
-        title:question.title,
-        type:question.type,
-        video_time_seconds:question.video_time_seconds,
-        total_answered:question.total_answered,
-        total_correctly_answered:question.total_correctly_answered,
-        answers:answers.filter(answer => answer.question.question_id === question.question_id)
-    }));
-
-    const answersBarChartData = questionsWithAnswers.map(question => {
-        const dataDict = {
-            question:`${question.title} (${question.video_time_seconds}s)`
-        };
-
-        question.answers.forEach(answer => {
-            dataDict[answer.label] = answer.answered_count ?? 0;
+    const answeredByQuestionPieData = answeredByQuestionBarData.sort((a, b) => b.value - a.value)
+        .map((answer, index) => {
+            const question = questions.find(question => question.question_id === selectedQuestion);
+            console.log(question);
+            const percent = ((answer.value/question.total_answered) * 100).toFixed(1);
+            return {id:index, label:`"${answer.label}": ${percent}% (${answer.value})`, value:answer.value};
         });
-
-        return dataDict; 
-    });// Returns a list of data dicts
 
     //--------------------------------Handle extra filters--------------------------------//
     const handleTypeFilterToggle = (value) => {
@@ -309,8 +307,8 @@ function Questions() {
                         </div>
                         <div className="my-4 d-flex flex-row flex-wrap justify-content-around">
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Correct answers per type graph")}>Correct Answers per type</button>
-                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Total answers by questions graph")}>Answers by questions</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Response breakdown graph")}>Response breakdown</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Total answers by questions graph")}>Answers by questions</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions table")}>Questions table</button>
                         </div>
                         {dataView === "Questions table" &&
@@ -643,9 +641,84 @@ function Questions() {
                                 />
                             </div>
                         } {dataView === "Response breakdown graph" &&
-                            <>
+                            <div className="d-flex flex-column">
+                            <div className="my-3 d-flex flex-row flex-wrap justify-content-center">
+                                <h4 className="me-3 my-1">Selected question: </h4>
+                                <Tooltip arrow placement="top" title="You may only select questions that have a finite pool of correct or incorrect responses">
+                                    <Paper className="w-50" elevation={1}>
+                                        <Select 
+                                            className="basic-single" 
+                                            classNamePrefix="select"
+                                            value={questions
+                                                .filter((question) => !['open', 'essay', 'vacancy', 'rating'].includes(question.type))
+                                                .map(question => ({
+                                                    value: question.question_id,
+                                                    label: `${question.title} (ID: ${question.question_id})`
+                                                })).find(option => option.value === selectedQuestion)}
+                                            isSearchable={true}
+                                            name="Question selection"
+                                            options={questions
+                                                .filter((question) => !['open', 'essay', 'vacancy', 'rating'].includes(question.type))
+                                                .map(question => ({
+                                                value:question.question_id,
+                                                label:`${question.title} (ID: ${question.question_id})`,
+                                            }))}
+                                            onChange={(selectedOption) => setSelectedQuestion(selectedOption.value)}
+                                            styles={{menu:(provided) => ({...provided, zIndex:1500})}}
+                                        />
+                                    </Paper>
+                                </Tooltip>
+                            </div>
+                            <div className="my-3 d-flex flex-row justify-content-around">
+                                <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setResponseBreakdownChart("Pie")}>Pie Chart</button>
+                                <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setResponseBreakdownChart("Bar")}>Bar Chart</button>
+                                <div className="d-flex flex-row justify-content-around">
+                                    <p className="my-2">To see a response breakdown for entry, open and form questions see Hihaho's stats page: </p>
+                                    <Link to={`https://studio.hihaho.com/stats/${questions.find(question => question.question_id === selectedQuestion).video.uuid}`} target="_blank"><IconButton><BarChartIcon /></IconButton></Link>
+                                </div>
+                            </div>
+                            {responseBreakdownChart === "Bar" &&
+                                <BarChart 
+                                    xAxis={[{
+                                        label: "Options",
+                                        scaleType: "band",
+                                        data: answeredByQuestionBarData.map(answer => answer.label),
+                                        colorMap: {
+                                            type: "ordinal",
+                                            values: answeredByQuestionBarData.map(answer => answer.label),
+                                            colors: answeredByQuestionBarData.map(answer => answer.color),
+                                        }
+                                    }]}
+                                    yAxis={[{label:"Number of responses"}]}
+                                    series={[{
+                                        label:"Number of responses",
+                                        data:answeredByQuestionBarData.map(answer => answer.value)
+                                    }]}
+                                    width={700}
+                                    height={400}
+                                    slotProps={{
+                                        axisLabel: {
+                                        style: {
+                                            fontWeight: 'bold',
+                                            fontSize: '16px',
+                                        },
+                                        },
+                                    }}
+                                />
+                            } {responseBreakdownChart === "Pie" &&
+                                <PieChart 
+                                    series={[{
+                                        data:answeredByQuestionPieData,
+                                        arcLabel:(answer) => answer.label,
+                                        arcLabelMinAngle:15
+                                    }]}
+                                    colors={piePallette}
+                                    width={800}
+                                    height={400}
+                                />
+                            }
                             
-                            </>
+                            </div>
                         }
                         
                     </div>
