@@ -36,7 +36,7 @@ function Questions() {
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
     const [typesIncludeExclude, setTypesIncludeExclude] = useState(false);
-    const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon"];
+    const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon", "aquamarine", "bisque", "green", "purple", "orange", "brown", "darkcyan"];
     const [lineChartVisible, setLineChartVisible] = useState({
         answered: true,
         correctly_answered: true,
@@ -669,12 +669,14 @@ function Questions() {
                                     </Paper>
                                 </Tooltip>
                             </div>
-                            <div className="my-3 d-flex flex-row justify-content-around">
-                                <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setResponseBreakdownChart("Pie")}>Pie Chart</button>
-                                <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setResponseBreakdownChart("Bar")}>Bar Chart</button>
+                            <div className="my-3 d-flex flex-row justify-content-center">
+                                <div className="d-flex flex-row justify-content-center">
+                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setResponseBreakdownChart("Pie")}>Pie Chart</button>
+                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setResponseBreakdownChart("Bar")}>Bar Chart</button>
+                                </div>
                                 <div className="d-flex flex-row justify-content-around">
-                                    <p className="my-2">To see a response breakdown for entry, open and form questions see Hihaho's stats page: </p>
-                                    <Link to={`https://studio.hihaho.com/stats/${questions.find(question => question.question_id === selectedQuestion).video.uuid}`} target="_blank"><IconButton><BarChartIcon /></IconButton></Link>
+                                    <p className="my-2">Response breakdown for other questions: </p>
+                                    <Link to={`https://studio.hihaho.com/stats/${videos.find(video => video.video_id === videoFilter)?.uuid}`} target="_blank"><IconButton><BarChartIcon /></IconButton></Link>
                                 </div>
                             </div>
                             {responseBreakdownChart === "Bar" &&

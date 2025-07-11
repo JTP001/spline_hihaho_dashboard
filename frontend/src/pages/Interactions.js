@@ -26,6 +26,7 @@ function Interactions() {
     const [dataView, setDataView] = useState("Clicks per type graphs");
     const [clicksPerTypeChart, setClicksPerTypeChart] = useState("Bar");
     const [clicksPerActionTypeChart, setClicksPerActionTypeChart] = useState("Pie");
+    const [interactionsPerTypeChart, setInteractionsPerTypeChart] = useState("Pie");
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [pageNum, setPageNum] = useState(0);
     const [orderBy, setOrderBy] = useState("title");
@@ -33,7 +34,7 @@ function Interactions() {
     const [searchQuery, setSearchQuery] = useState("");
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
-    const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon"];
+    const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon", "aquamarine", "bisque", "green", "purple", "orange", "brown", "darkcyan"];
 
     //----------------------------------Check logged in----------------------------------//
     useEffect(() => {
@@ -148,7 +149,7 @@ function Interactions() {
         });
     }, [interactions, searchQuery, startDate, endDate]);
 
-    //----------------------------Create 'by type' chart data----------------------------//
+    //-------------------------Create 'clicks by type' chart data-------------------------//
     const interactionClicksByType = filteredInteractions.reduce((total, interaction) => {
         const type = interaction.type;
         if (!total[type]) {
@@ -161,7 +162,7 @@ function Interactions() {
     const iTypeBarChartData = Object.entries(interactionClicksByType).map(([type, total_clicks]) => ({
         type,
         total_clicks,
-    }));
+    })).sort((a, b) => b.total_clicks - a.total_clicks);;
 
     const iTypePiePercentData = iTypeBarChartData.reduce((sum, grouping) => sum += grouping.total_clicks, 0)
 
@@ -170,7 +171,7 @@ function Interactions() {
         return {id:index, value:grouping.total_clicks, label:`${grouping.type}: ${percent}%`};
     })
 
-    //------------------------Create 'by action type' chart data------------------------//
+    //---------------------Create 'clicks by action type' chart data---------------------//
     const interactionClicksByActionType = filteredInteractions.reduce((clicks, interaction) => {
         let key = interaction.action_type;
         if (interaction.action_type === "No action type selected") {
@@ -193,11 +194,33 @@ function Interactions() {
         total_clicks,
     })).sort((a, b) => b.total_clicks - a.total_clicks);
 
-    const iActionTypePiePercentData = iActionTypeBarChartData.reduce((sum, grouping) => sum += grouping.total_clicks, 0)
+    const iActionTypePiePercentData = iActionTypeBarChartData.reduce((sum, grouping) => sum += grouping.total_clicks, 1)
 
     const iActionTypePieChartData = iActionTypeBarChartData.map((grouping, index) => {
         const percent = ((grouping.total_clicks/iActionTypePiePercentData) * 100).toFixed(1);
         return {id:index, value:grouping.total_clicks, label:`${grouping.action_type}: ${percent}%`};
+    })
+
+    //----------------------Create 'interactions by type' chart data----------------------//
+    const interactionCountByType = filteredInteractions.reduce((total, interaction) => {
+        const type = interaction.type;
+        if (!total[type]) {
+            total[type] = 0;
+        }
+        total[type] += 1;
+        return total
+    }, {});
+
+    const typeCountBarChartData = Object.entries(interactionCountByType).map(([type, total_interactions]) => ({
+        type,
+        total_interactions,
+    })).sort((a, b) => b.total_interactions - a.total_interactions);;
+
+    const typeCountPiePercentData = typeCountBarChartData.reduce((sum, grouping) => sum += grouping.total_interactions, 0)
+
+    const typeCountPieChartData = typeCountBarChartData.map((grouping, index) => {
+        const percent = ((grouping.total_interactions/typeCountPiePercentData) * 100).toFixed(1);
+        return {id:index, value:grouping.total_interactions, label:`${grouping.type}: ${percent}%`};
     })
 
     //----------------------------------Handle pagination----------------------------------//
@@ -270,6 +293,7 @@ function Interactions() {
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks per type graphs")}>Clicks per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks per action type graphs")}>Clicks per action type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks by video duration graph")}>Clicks by video time</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Interactions per type graphs")}>interactions per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Interaction table")}>Interaction Data</button>
                         </div>
                         {dataView === "Interaction table" &&
@@ -532,6 +556,50 @@ function Interactions() {
                                 series={[{data:bucketArray, label:"clicks", showMark:false, area:true, color:"#0dcaef"}]}
                                 height={400}
                             />
+                            </div>
+                        } {dataView === "Interactions per type graphs" &&
+                            <div className="d-flex flex-column">
+                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                                <div className="my-3 d-flex flex-row justify-content-around">
+                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setInteractionsPerTypeChart("Pie")}>Pie Chart</button>
+                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setInteractionsPerTypeChart("Bar")}>Bar Chart</button>
+                                </div>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
+                            </div>
+                            {interactionsPerTypeChart === "Pie" &&
+                                <PieChart
+                                    colors={piePallette}
+                                    series={[{
+                                        arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
+                                        data: typeCountPieChartData,
+                                        arcLabelMinAngle:40
+                                    }]}
+                                    width={800}
+                                    height={400}
+                                />
+                            } {interactionsPerTypeChart === "Bar" &&
+                                <BarChart 
+                                    xAxis={[{label:"Interaction type", data: typeCountBarChartData.map(grouping => grouping.type)}]}
+                                    yAxis={[{label:"Total interactions", width:60}]}
+                                    series={[{label:"Total amount of interactions per type", data: typeCountBarChartData.map(grouping => grouping.total_interactions), color:"#0dcaef"}]}
+                                    width={700}
+                                    height={400}
+                                    slotProps={{
+                                        axisLabel: {
+                                        style: {
+                                            fontWeight: 'bold',
+                                            fontSize: '16px',
+                                        },
+                                        },
+                                    }}
+                                />
+                            }
                             </div>
                         }
                         

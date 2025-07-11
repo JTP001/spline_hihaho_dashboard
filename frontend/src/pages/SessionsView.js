@@ -38,7 +38,7 @@ function SessionsView() {
     const filterMenuOpen = Boolean(anchorFilterMenu); // Filter menu is open when it is not null
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
-    const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon"];
+    const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon", "aquamarine", "bisque", "green", "purple", "orange", "brown", "darkcyan"];
 
     //----------------------------------Check logged in----------------------------------//
     useEffect(() => {
@@ -169,7 +169,7 @@ function SessionsView() {
         session_counts,
     })).sort((a, b) => b.session_counts - a.session_counts);
 
-    const osCountsPiePercentData = osCountsBarChartData.reduce((sum, grouping) => sum += grouping.session_counts, 0);
+    const osCountsPiePercentData = osCountsBarChartData.reduce((sum, grouping) => sum += grouping.session_counts, 1);
 
     const osCountsPieChartData = osCountsBarChartData.map((grouping, index) => {
         const percent = ((grouping.session_counts/osCountsPiePercentData) * 100).toFixed(1);
