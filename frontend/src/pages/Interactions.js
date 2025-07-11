@@ -26,7 +26,7 @@ function Interactions() {
     const [dataView, setDataView] = useState("Clicks per type graphs");
     const [clicksPerTypeChart, setClicksPerTypeChart] = useState("Bar");
     const [clicksPerActionTypeChart, setClicksPerActionTypeChart] = useState("Pie");
-    const [interactionsPerTypeChart, setInteractionsPerTypeChart] = useState("Pie");
+    const [interactionsPerTypeChart, setInteractionsPerTypeChart] = useState("Bar");
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [pageNum, setPageNum] = useState(0);
     const [orderBy, setOrderBy] = useState("title");
@@ -293,7 +293,7 @@ function Interactions() {
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks per type graphs")}>Clicks per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks per action type graphs")}>Clicks per action type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Clicks by video duration graph")}>Clicks by video time</button>
-                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Interactions per type graphs")}>interactions per type</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Interactions per type graphs")}>Interactions per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Interaction table")}>Interaction Data</button>
                         </div>
                         {dataView === "Interaction table" &&
