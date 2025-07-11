@@ -33,8 +33,10 @@ function Summary() {
     const [filteredAggrStats, setFilteredAggrStats] = useState({});
     const [videoRatings, setVideoRatings] = useState([]);
     const [allInteractions, setAllInteractions] = useState([]);
+    const [allQuestions, setAllQuestions] = useState([]);
     const [dataView, setDataView] = useState("Summary table");
-    const [interactionsPerTypeChart, setInteractionsPerTypeChart] = useState("Pie");
+    const [interactionsPerTypeChart, setInteractionsPerTypeChart] = useState("Bar");
+    const [questionsPerTypeChart, setQuestionsPerTypeChart] = useState("Bar");
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [pageNum, setPageNum] = useState(0);
     const [orderBy, setOrderBy] = useState("video.title");
@@ -180,7 +182,7 @@ function Summary() {
         setFilteredAggrStats(aggregated_stats);
     }, [filteredStats])
 
-    //------------------------------Get all interactions------------------------------//
+    //-------------------------Get all interactions and questions-------------------------//
     useEffect(() => {
         axiosInstance.get("videos/interactions/")
             .then(res => {
@@ -189,6 +191,23 @@ function Summary() {
                     created_at: dayjs(interaction.created_at)
                 }));
                 setAllInteractions(interactionsData);
+            })
+            .catch(err => console.error(err));
+
+        axiosInstance.get("videos/questions/")
+            .then(res => {
+                const questionsData = res.data.map(question => ({
+                    ...question,
+                    title:(question.title.slice(0, 18) === "<!--TINYMCE-->\n<p>") ? 
+                        question.title.slice(18, -4) : 
+                            (question.title.slice(0, 14) === "<!--TINYMCE-->") ? 
+                            question.title.slice(15) : question.title,
+                    percent_correct:question.total_answered > 0
+                        ? Math.round((question.total_correctly_answered / question.total_answered) * 100)
+                        : 0, // Makes sure that there's no divide by 0 error
+                    created_at:dayjs(question.created_at)
+                }));
+                setAllQuestions(questionsData);
             })
             .catch(err => console.error(err));
     }, []);
@@ -206,16 +225,39 @@ function Summary() {
             return total
     }, {});
 
-    const typeCountBarChartData = Object.entries(interactionCountByType).map(([type, total_interactions]) => ({
+    const itypeCountBarChartData = Object.entries(interactionCountByType).map(([type, total_interactions]) => ({
         type,
         total_interactions,
     })).sort((a, b) => b.total_interactions - a.total_interactions);;
 
-    const typeCountPiePercentData = typeCountBarChartData.reduce((sum, grouping) => sum += grouping.total_interactions, 1)
+    const itypeCountPiePercentData = itypeCountBarChartData.reduce((sum, grouping) => sum += grouping.total_interactions, 1)
 
-    const typeCountPieChartData = typeCountBarChartData.map((grouping, index) => {
-        const percent = ((grouping.total_interactions/typeCountPiePercentData) * 100).toFixed(1);
+    const itypeCountPieChartData = itypeCountBarChartData.map((grouping, index) => {
+        const percent = ((grouping.total_interactions/itypeCountPiePercentData) * 100).toFixed(1);
         return {id:index, value:grouping.total_interactions, label:`${grouping.type}: ${percent}%`};
+    })
+
+    //----------------------Create 'questions by type' chart data----------------------//
+    const questionCountByType = allQuestions.filter(question => filteredVideoIds.has(question.video.video_id))
+        .reduce((total, question) => {
+            const type = question.type;
+            if (!total[type]) {
+                total[type] = 0;
+            }
+            total[type] += 1;
+            return total
+    }, {});
+
+    const qtypeCountBarChartData = Object.entries(questionCountByType).map(([type, total_questions]) => ({
+        type,
+        total_questions,
+    })).sort((a, b) => b.total_questions - a.total_questions);;
+
+    const qtypeCountPiePercentData = qtypeCountBarChartData.reduce((sum, grouping) => sum += grouping.total_questions, 1)
+
+    const qtypeCountPieChartData = qtypeCountBarChartData.map((grouping, index) => {
+        const percent = ((grouping.total_questions/qtypeCountPiePercentData) * 100).toFixed(1);
+        return {id:index, value:grouping.total_questions, label:`${grouping.type}: ${percent}%`};
     })
 
     //----------------------------------Handle pagination----------------------------------//
@@ -299,6 +341,7 @@ function Summary() {
                         <div className="my-2 d-flex flex-row flex-wrap justify-content-around">
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Summary table")}>Summary table</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Interaction graphs")}>Interaction graphs</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Question graphs")}>Question graphs</button>
                         </div>
                         {dataView === "Summary table" &&
                             <div className="d-flex flex-column">
@@ -610,13 +653,13 @@ function Summary() {
                                 <h4 className="text-center mt-4">Loading interaction data...</h4>
                             } {allInteractions?.length > 0 && interactionsPerTypeChart === "Pie" &&
                                 <div className="d-flex flex-column justify-content-center">
-                                    <p className="text-center">Total amount of interactions per type</p>
+                                    <p className="text-center">Total amount of interactions by type over all videos</p>
                                     <PieChart
                                         colors={piePallette}
                                         series={[{
                                             arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
-                                            data: typeCountPieChartData,
-                                            arcLabelMinAngle:40
+                                            data: itypeCountPieChartData,
+                                            arcLabelMinAngle:35
                                         }]}
                                         width={800}
                                         height={400}
@@ -625,9 +668,82 @@ function Summary() {
                                 
                             } {allInteractions?.length > 0 && interactionsPerTypeChart === "Bar" &&
                                 <BarChart 
-                                    xAxis={[{label:"Interaction type", data: typeCountBarChartData.map(grouping => grouping.type)}]}
+                                    xAxis={[{label:"Interaction type", data: itypeCountBarChartData.map(grouping => grouping.type)}]}
                                     yAxis={[{label:"Total interactions", width:60}]}
-                                    series={[{label:"Total amount of interactions per type", data: typeCountBarChartData.map(grouping => grouping.total_interactions), color:"#0dcaef"}]}
+                                    series={[{label:"Total amount of interactions by type over all videos", data: itypeCountBarChartData.map(grouping => grouping.total_interactions), color:"#0dcaef"}]}
+                                    width={900}
+                                    height={400}
+                                    slotProps={{
+                                        axisLabel: {
+                                        style: {
+                                            fontWeight: 'bold',
+                                            fontSize: '16px',
+                                        },
+                                        },
+                                    }}
+                                />
+                            }
+                            </div>
+                        } {dataView === "Question graphs" &&
+                            <div className="d-flex flex-column">
+                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                                <div className="my-3 d-flex flex-row justify-content-around">
+                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setQuestionsPerTypeChart("Pie")}>Pie Chart</button>
+                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setQuestionsPerTypeChart("Bar")}>Bar Chart</button>
+                                </div>
+                                <Paper className="my-3 mx-2 d-flex justify-content-center rounded-5" elevation={2}>
+                                    <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
+                                        <FilterListIcon />
+                                    </IconButton>
+                                    <Menu anchorEl={anchorFilterMenu} open={filterMenuOpen} onClose={() => setAnchorFilterMenu(null)}>
+                                        <MenuItem disabled>
+                                            <Typography variant="subtitle1">Status Filter Options</Typography>
+                                        </MenuItem>
+                                        <Box px={2} className="d-flex flex-column" gap={1}>
+                                            {[0, 1, 2, 3, 4].map((filterOption) => (
+                                                <FormControlLabel key={filterOption} 
+                                                    control={
+                                                        <Checkbox 
+                                                            checked={statusFilters.includes(filterOption)} 
+                                                            onChange={() => handleStatusFilterToggle(filterOption)}
+                                                        />
+                                                    }
+                                                    label={`${filterOption} (${statusFilterText[filterOption]})`}
+                                                />
+                                            ))}
+                                        </Box>
+                                    </Menu>
+                                </Paper>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
+                            </div>
+                            {allQuestions === null || allQuestions?.length <= 0 &&
+                                <h4 className="text-center mt-4">Loading question data...</h4>
+                            } {allQuestions?.length > 0 && questionsPerTypeChart === "Pie" &&
+                                <div className="d-flex flex-column justify-content-center">
+                                    <p className="text-center">Total amount of questions by type over all videos</p>
+                                    <PieChart
+                                        colors={piePallette}
+                                        series={[{
+                                            arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
+                                            data: qtypeCountPieChartData,
+                                            arcLabelMinAngle:35
+                                        }]}
+                                        width={800}
+                                        height={400}
+                                    />
+                                </div>
+                                
+                            } {allQuestions?.length > 0 && questionsPerTypeChart === "Bar" &&
+                                <BarChart 
+                                    xAxis={[{label:"Question type", data: qtypeCountBarChartData.map(grouping => grouping.type)}]}
+                                    yAxis={[{label:"Total questions", width:60}]}
+                                    series={[{label:"Total amount of questions by type over all videos", data: qtypeCountBarChartData.map(grouping => grouping.total_questions), color:"#0dcaef"}]}
                                     width={900}
                                     height={400}
                                     slotProps={{
