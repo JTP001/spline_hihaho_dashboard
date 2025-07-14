@@ -4,9 +4,9 @@ import { useVideoFilter } from "../context/VideoFilterContext";
 import { LineChart } from '@mui/x-charts';
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
-import Paper from '@mui/material/Paper';
-import { FormGroup, FormControlLabel, Checkbox } from "@mui/material";
+import { FormGroup, FormControlLabel, Checkbox, Paper } from "@mui/material";
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
@@ -163,6 +163,7 @@ function MonthlyView() {
             : (a, b) => -descendingComparator(a, b, orderBy);
     };
 
+    //----------------------------------Handle export----------------------------------//
     const handleExport = async (month, exportType) => {
         if (exportType === "filter") {
             try {
@@ -419,17 +420,24 @@ function MonthlyView() {
                                         label="Unfinished"
                                     />
                                 </FormGroup>
-                                <LineChart 
-                                    xAxis={[{scaleType:'point', data:lineChartMonths}]}
-                                    series={[
-                                        lineChartVisible.started && {data:lineChartStartedViews, label:'Started Views', color:"dodgerblue", showMark:false},
-                                        lineChartVisible.finished && {data:lineChartFinishedViews, label:'Finished Views', color:"orange", showMark:false},
-                                        lineChartVisible.passed && {data:lineChartPassedViews, label:'Passed Views', color:"limegreen", showMark:false},
-                                        lineChartVisible.failed && {data:lineChartFailedViews, label:'Failed Views', color:"red", showMark:false},
-                                        lineChartVisible.unfinished && {data:lineChartUnfinishedViews, label:'Unfinished Views', color:"magenta", showMark:false}
-                                    ].filter(Boolean)} // To filter out lines toggled off (false)
-                                    height={400}
-                                />
+                                {filteredMonthlyData.length > 0 ? (
+                                    <LineChart 
+                                        xAxis={[{scaleType:'point', data:lineChartMonths}]}
+                                        series={[
+                                            lineChartVisible.started && {data:lineChartStartedViews, label:'Started Views', color:"dodgerblue", showMark:false},
+                                            lineChartVisible.finished && {data:lineChartFinishedViews, label:'Finished Views', color:"orange", showMark:false},
+                                            lineChartVisible.passed && {data:lineChartPassedViews, label:'Passed Views', color:"limegreen", showMark:false},
+                                            lineChartVisible.failed && {data:lineChartFailedViews, label:'Failed Views', color:"red", showMark:false},
+                                            lineChartVisible.unfinished && {data:lineChartUnfinishedViews, label:'Unfinished Views', color:"magenta", showMark:false}
+                                        ].filter(Boolean)} // To filter out lines toggled off (false)
+                                        height={400}
+                                    />
+                                ) : (
+                                    <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                        <HighlightOffIcon className="mx-2"/>
+                                        <h5>No interaction data to display</h5>
+                                    </Paper>
+                                )}
                             </div>
                         } {dataView === "Export" &&
                             <div className="d-flex flex-column justify-content-center">
@@ -441,9 +449,9 @@ function MonthlyView() {
                                     minDate={dayjs('2000-01-01')}
                                     maxDate={dayjs()}
                                 />
-                                <div className="d-flex flex-row justify-content-around my-2 mx-auto flex-wrap">
-                                    <button className="mx-2 btn bg-info-subtle" onClick={() => handleExport(exportDate.format("YYYY-MM"), "filter")}>Export (excluding not yet created videos)</button>
-                                    <button className="mx-2 btn bg-info-subtle" onClick={() => handleExport(exportDate.format("YYYY-MM"), "all")}>Export All</button>
+                                <div className="d-flex flex-row justify-content-around my-3 mx-auto flex-wrap">
+                                    <button className="mx-2 p-3 btn bg-info-subtle" onClick={() => handleExport(exportDate.format("YYYY-MM"), "filter")}>Export (excluding not yet created videos)</button>
+                                    <button className="mx-2 p-3 btn bg-info-subtle" onClick={() => handleExport(exportDate.format("YYYY-MM"), "all")}>Export All</button>
                                 </div>
                             </div>
                         }

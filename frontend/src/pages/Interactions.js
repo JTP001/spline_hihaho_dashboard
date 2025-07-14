@@ -6,6 +6,7 @@ import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { Paper, InputBase } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
@@ -164,7 +165,7 @@ function Interactions() {
         total_clicks,
     })).sort((a, b) => b.total_clicks - a.total_clicks);;
 
-    const iTypePiePercentData = iTypeBarChartData.reduce((sum, grouping) => sum += grouping.total_clicks, 0)
+    const iTypePiePercentData = iTypeBarChartData.reduce((sum, grouping) => sum += grouping.total_clicks, 1)
 
     const iTypePieChartData = iTypeBarChartData.map((grouping, index) => {
         const percent = ((grouping.total_clicks/iTypePiePercentData) * 100).toFixed(1);
@@ -216,7 +217,7 @@ function Interactions() {
         total_interactions,
     })).sort((a, b) => b.total_interactions - a.total_interactions);;
 
-    const typeCountPiePercentData = typeCountBarChartData.reduce((sum, grouping) => sum += grouping.total_interactions, 0)
+    const typeCountPiePercentData = typeCountBarChartData.reduce((sum, grouping) => sum += grouping.total_interactions, 1)
 
     const typeCountPieChartData = typeCountBarChartData.map((grouping, index) => {
         const percent = ((grouping.total_interactions/typeCountPiePercentData) * 100).toFixed(1);
@@ -461,34 +462,46 @@ function Interactions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {clicksPerTypeChart === "Pie" &&
-                                <PieChart
-                                    colors={piePallette}
-                                    series={[{
-                                        arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
-                                        data: iTypePieChartData,
-                                        arcLabelMinAngle:35
-                                    }]}
-                                    width={800}
-                                    height={400}
-                                />
-                            } {clicksPerTypeChart === "Bar" &&
-                                <BarChart 
-                                    xAxis={[{label:"Interaction type", data: iTypeBarChartData.map(grouping => grouping.type)}]}
-                                    yAxis={[{label:"Total clicks", width:60}]}
-                                    series={[{label:"Total clicks per interaction type", data: iTypeBarChartData.map(grouping => grouping.total_clicks), color:"#0dcaef"}]}
-                                    width={700}
-                                    height={400}
-                                    slotProps={{
-                                        axisLabel: {
-                                        style: {
-                                            fontWeight: 'bold',
-                                            fontSize: '16px',
-                                        },
-                                        },
-                                    }}
-                                />
-                            }
+                            {filteredInteractions.length > 0 ? (
+                                <>
+                                {clicksPerTypeChart === "Pie" &&
+                                    <div className="d-flex flex-column">
+                                    <h6 className="text-center">Total clicks per interaction type</h6>
+                                    <PieChart
+                                        colors={piePallette}
+                                        series={[{
+                                            arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
+                                            data: iTypePieChartData,
+                                            arcLabelMinAngle:35
+                                        }]}
+                                        width={800}
+                                        height={400}
+                                    />
+                                    </div>
+                                } {clicksPerTypeChart === "Bar" &&
+                                    <BarChart 
+                                        xAxis={[{label:"Interaction type", data: iTypeBarChartData.map(grouping => grouping.type)}]}
+                                        yAxis={[{label:"Total clicks", width:60}]}
+                                        series={[{label:"Total clicks per interaction type", data: iTypeBarChartData.map(grouping => grouping.total_clicks), color:"#0dcaef"}]}
+                                        width={700}
+                                        height={400}
+                                        slotProps={{
+                                            axisLabel: {
+                                            style: {
+                                                fontWeight: 'bold',
+                                                fontSize: '16px',
+                                            },
+                                            },
+                                        }}
+                                    />
+                                }
+                                </>
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No interaction data to display</h5>
+                                </Paper>
+                            )}
                             </div>
                         } {dataView === "Clicks per action type graphs" &&
                             <div className="d-flex flex-column">
@@ -505,35 +518,46 @@ function Interactions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            <h6 className="text-center">Total clicks per interaction action type</h6>
-                            {clicksPerActionTypeChart === "Pie" &&
-                                <PieChart
-                                    colors={piePallette}
-                                    series={[{
-                                        arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
-                                        data: iActionTypePieChartData,
-                                        arcLabelMinAngle:35
-                                    }]}
-                                    width={800}
-                                    height={400}
-                                />
-                            } {clicksPerActionTypeChart === "Bar" &&
-                                <BarChart 
-                                    xAxis={[{label:"Action type", data: iActionTypeBarChartData.map(grouping => grouping.action_type)}]}
-                                    yAxis={[{label:"Total clicks", width:60}]}
-                                    series={[{label:"Total clicks per interaction action type", data: iActionTypeBarChartData.map(grouping => grouping.total_clicks), color:"#0dcaef"}]}
-                                    width={800}
-                                    height={400}
-                                    slotProps={{
-                                        axisLabel: {
-                                        style: {
-                                            fontWeight: 'bold',
-                                            fontSize: '16px',
-                                        },
-                                        },
-                                    }}
-                                />
-                            }
+                            {filteredInteractions.length > 0 ? (
+                                <>
+                                {clicksPerActionTypeChart === "Pie" &&
+                                    <div className="d-flex flex-column">
+                                    <h6 className="text-center">Total clicks per interaction action type</h6>
+                                    <PieChart
+                                        colors={piePallette}
+                                        series={[{
+                                            arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
+                                            data: iActionTypePieChartData,
+                                            arcLabelMinAngle:35
+                                        }]}
+                                        width={800}
+                                        height={400}
+                                    />
+                                    </div>
+                                } {clicksPerActionTypeChart === "Bar" &&
+                                    <BarChart 
+                                        xAxis={[{label:"Action type", data: iActionTypeBarChartData.map(grouping => grouping.action_type)}]}
+                                        yAxis={[{label:"Total clicks", width:60}]}
+                                        series={[{label:"Total clicks per interaction action type", data: iActionTypeBarChartData.map(grouping => grouping.total_clicks), color:"#0dcaef"}]}
+                                        width={800}
+                                        height={400}
+                                        slotProps={{
+                                            axisLabel: {
+                                            style: {
+                                                fontWeight: 'bold',
+                                                fontSize: '16px',
+                                            },
+                                            },
+                                        }}
+                                    />
+                                }
+                                </>
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No interaction data to display</h5>
+                                </Paper>
+                            )}
                             </div>
                         } {dataView === "Clicks by video duration graph" &&
                             <div className="d-flex flex-column">
@@ -551,11 +575,18 @@ function Interactions() {
                                     </ul>
                                 </div>
                             </div>
-                            <LineChart 
-                                xAxis={[{data:bucketArray.map((_, i) => `${i * bucketSize}s`), scaleType:'point', label:'Video time (seconds)'}]}
-                                series={[{data:bucketArray, label:"clicks", showMark:false, area:true, color:"#0dcaef"}]}
-                                height={400}
-                            />
+                            {bucketArray.length > 0 ? (
+                                <LineChart 
+                                    xAxis={[{data:bucketArray.map((_, i) => `${i * bucketSize}s`), scaleType:'point', label:'Video time (seconds)'}]}
+                                    series={[{data:bucketArray, label:"clicks", showMark:false, area:true, color:"#0dcaef"}]}
+                                    height={400}
+                                />
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No interaction data to display</h5>
+                                </Paper>
+                            )}
                             </div>
                         } {dataView === "Interactions per type graphs" &&
                             <div className="d-flex flex-column">
@@ -572,34 +603,43 @@ function Interactions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {interactionsPerTypeChart === "Pie" &&
-                                <PieChart
-                                    colors={piePallette}
-                                    series={[{
-                                        arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
-                                        data: typeCountPieChartData,
-                                        arcLabelMinAngle:40
-                                    }]}
-                                    width={800}
-                                    height={400}
-                                />
-                            } {interactionsPerTypeChart === "Bar" &&
-                                <BarChart 
-                                    xAxis={[{label:"Interaction type", data: typeCountBarChartData.map(grouping => grouping.type)}]}
-                                    yAxis={[{label:"Total interactions", width:60}]}
-                                    series={[{label:"Total amount of interactions per type", data: typeCountBarChartData.map(grouping => grouping.total_interactions), color:"#0dcaef"}]}
-                                    width={700}
-                                    height={400}
-                                    slotProps={{
-                                        axisLabel: {
-                                        style: {
-                                            fontWeight: 'bold',
-                                            fontSize: '16px',
-                                        },
-                                        },
-                                    }}
-                                />
-                            }
+                            {filteredInteractions.length > 0 ? (
+                                <>
+                                {interactionsPerTypeChart === "Pie" &&
+                                    <PieChart
+                                        colors={piePallette}
+                                        series={[{
+                                            arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
+                                            data: typeCountPieChartData,
+                                            arcLabelMinAngle:40
+                                        }]}
+                                        width={800}
+                                        height={400}
+                                    />
+                                } {interactionsPerTypeChart === "Bar" &&
+                                    <BarChart 
+                                        xAxis={[{label:"Interaction type", data: typeCountBarChartData.map(grouping => grouping.type)}]}
+                                        yAxis={[{label:"Total interactions", width:60}]}
+                                        series={[{label:"Total amount of interactions per type", data: typeCountBarChartData.map(grouping => grouping.total_interactions), color:"#0dcaef"}]}
+                                        width={700}
+                                        height={400}
+                                        slotProps={{
+                                            axisLabel: {
+                                            style: {
+                                                fontWeight: 'bold',
+                                                fontSize: '16px',
+                                            },
+                                            },
+                                        }}
+                                    />
+                                }
+                                </>
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No interaction data to display</h5>
+                                </Paper>
+                            )}
                             </div>
                         }
                         

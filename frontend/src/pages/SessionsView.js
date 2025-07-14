@@ -2,12 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import Layout from "../components/Layout";
 import { useVideoFilter } from "../context/VideoFilterContext";
 import { BarChart, PieChart, LineChart } from '@mui/x-charts';
-import { IconButton, Menu, MenuItem, Typography, Checkbox, FormControlLabel, Box } from '@mui/material';
+import { IconButton, Menu, MenuItem, Typography, Checkbox, FormControlLabel, Box, Paper, InputBase } from '@mui/material';
 import FilterListIcon from "@mui/icons-material/FilterList";
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import SearchIcon from '@mui/icons-material/Search';
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
-import { Paper, InputBase } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
@@ -468,37 +468,46 @@ function SessionsView() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {sessionByOsChart === "Pie" &&
+                            {filteredSessions.length > 0 ? (
                                 <>
-                                <h6 className="text-center">Sessions by OS Pie Chart</h6>
-                                <PieChart 
-                                    colors={piePallette}
-                                    series={[{
-                                        arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
-                                        data: osCountsPieChartData,
-                                        arcLabelMinAngle:35
-                                    }]}
-                                    width={700}
-                                    height={400}
-                                />
+                                {sessionByOsChart === "Pie" &&
+                                    <>
+                                    <h6 className="text-center">Sessions by OS Pie Chart</h6>
+                                    <PieChart 
+                                        colors={piePallette}
+                                        series={[{
+                                            arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
+                                            data: osCountsPieChartData,
+                                            arcLabelMinAngle:35
+                                        }]}
+                                        width={700}
+                                        height={400}
+                                    />
+                                    </>
+                                } {sessionByOsChart === "Bar" &&
+                                    <BarChart 
+                                        xAxis={[{label:"OS used", data: osCountsBarChartData.map(grouping => grouping.os)}]}
+                                        yAxis={[{label:"Number of sessions", width:60}]}
+                                        series={[{label:"Total number of sessions per os", data: osCountsBarChartData.map(grouping => grouping.session_counts), color:"#0dcaef"}]}
+                                        width={700}
+                                        height={400}
+                                        slotProps={{
+                                            axisLabel: {
+                                            style: {
+                                                fontWeight: 'bold',
+                                                fontSize: '16px',
+                                            },
+                                            },
+                                        }}
+                                    />
+                                }
                                 </>
-                            } {sessionByOsChart === "Bar" &&
-                                <BarChart 
-                                    xAxis={[{label:"OS used", data: osCountsBarChartData.map(grouping => grouping.os)}]}
-                                    yAxis={[{label:"Number of sessions", width:60}]}
-                                    series={[{label:"Total number of sessions per os", data: osCountsBarChartData.map(grouping => grouping.session_counts), color:"#0dcaef"}]}
-                                    width={700}
-                                    height={400}
-                                    slotProps={{
-                                        axisLabel: {
-                                        style: {
-                                            fontWeight: 'bold',
-                                            fontSize: '16px',
-                                        },
-                                        },
-                                    }}
-                                />
-                            }
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No session data to display</h5>
+                                </Paper>
+                            )}
                             </div>
                         } {dataView === "Sessions by browser" &&
                             <div className="d-flex flex-column">
@@ -520,24 +529,31 @@ function SessionsView() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            <BarChart 
-                                xAxis={[{label:"Browser used", data: browserCountsBarChartData.map(grouping => grouping.browser)}]}
-                                yAxis={[{label:"Number of sessions", width:60}]}
-                                series={[
-                                    {label:"Sessions per browser (Desktop)", data: browserCountsBarChartData.map(grouping => grouping.desktop), color:"#0dcaef", stack:'a'},
-                                    {label:"Sessions per browser (Mobile)", data: browserCountsBarChartData.map(grouping => grouping.mobile), color:"lightgreen", stack:'a'}
-                                ]}
-                                width={800}
-                                height={400}
-                                slotProps={{
-                                    axisLabel: {
-                                    style: {
-                                        fontWeight: 'bold',
-                                        fontSize: '16px',
-                                    },
-                                    },
-                                }}
-                            />
+                            {filteredSessions.length > 0 ? (
+                                <BarChart 
+                                    xAxis={[{label:"Browser used", data: browserCountsBarChartData.map(grouping => grouping.browser)}]}
+                                    yAxis={[{label:"Number of sessions", width:60}]}
+                                    series={[
+                                        {label:"Sessions per browser (Desktop)", data: browserCountsBarChartData.map(grouping => grouping.desktop), color:"#0dcaef", stack:'a'},
+                                        {label:"Sessions per browser (Mobile)", data: browserCountsBarChartData.map(grouping => grouping.mobile), color:"lightgreen", stack:'a'}
+                                    ]}
+                                    width={800}
+                                    height={400}
+                                    slotProps={{
+                                        axisLabel: {
+                                        style: {
+                                            fontWeight: 'bold',
+                                            fontSize: '16px',
+                                        },
+                                        },
+                                    }}
+                                />
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No session data to display</h5>
+                                </Paper>
+                            )}
                             </div>
                         } {dataView === "Device breakdown" &&
                             <div className="d-flex flex-column">
@@ -550,27 +566,47 @@ function SessionsView() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            <h6 className="text-center">Device Breakdown Pie Chart</h6>
-                            <PieChart
-                                colors={piePallette}
-                                series={[{
-                                    arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
-                                    data: [
-                                        {id:0, value:deviceCounts.mobile, label:`Mobile: ${((deviceCounts.mobile/Math.max(filteredSessions.length, 1))*100).toFixed(1)}%`},
-                                        {id:1, value:deviceCounts.desktop, label:`Desktop: ${((deviceCounts.desktop/Math.max(filteredSessions.length, 1))*100).toFixed(1)}%`}
-                                    ].sort((a, b) => b.value - a.value),
-                                    arcLabelMinAngle:35
-                                }]}
-                                width={700}
-                                height={400}
-                            />
+                            {filteredSessions.length > 0 ? (
+                                <div className="d-flex flex-column">
+                                    <h6 className="text-center">Device Breakdown Pie Chart</h6>
+                                    <PieChart
+                                        colors={piePallette}
+                                        series={[{
+                                            arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
+                                            data: [
+                                                {id:0, value:deviceCounts.mobile, label:`Mobile: ${((deviceCounts.mobile/Math.max(filteredSessions.length, 1))*100).toFixed(1)}%`},
+                                                {id:1, value:deviceCounts.desktop, label:`Desktop: ${((deviceCounts.desktop/Math.max(filteredSessions.length, 1))*100).toFixed(1)}%`}
+                                            ].sort((a, b) => b.value - a.value),
+                                            arcLabelMinAngle:35
+                                        }]}
+                                        width={700}
+                                        height={400}
+                                    />
+                                </div>
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No session data to display</h5>
+                                </Paper>
+                            )}
                             </div>
                         } {dataView === "Dropoff point" &&
-                            <LineChart 
-                                xAxis={[{data:bucketArray.map((_, i) => `${i * bucketSize}s`), scaleType:'point', label:'Video time (seconds)'}]}
-                                series={[{data:bucketArray, label:"# of sessions that stopped at this time", showMark:false, area:true, color:"#0dcaef"}]}
-                                height={400}
-                            />
+                            <>
+                            {filteredSessions.length > 0 ? (
+                                <LineChart 
+                                    xAxis={[{data:bucketArray.map((_, i) => `${i * bucketSize}s`), scaleType:'point', label:'Video time (seconds)'}]}
+                                    series={[{data:bucketArray, label:"# of sessions that stopped at this time", showMark:false, area:true, color:"#0dcaef"}]}
+                                    height={400}
+                                />
+                            ) : (
+                                <div className="d-flex justify-content-center">
+                                    <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                        <HighlightOffIcon className="mx-2"/>
+                                        <h5>No session data to display</h5>
+                                    </Paper>
+                                </div>
+                            )}
+                            </>
                         }
                         
                     </div>

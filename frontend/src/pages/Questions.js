@@ -6,6 +6,7 @@ import { BarChart, LineChart, PieChart } from '@mui/x-charts';
 import { IconButton, Menu, MenuItem, Typography, FormControlLabel, Box, Radio, FormGroup, Checkbox, Tooltip } from '@mui/material';
 import FilterListIcon from "@mui/icons-material/FilterList";
 import BarChartIcon from '@mui/icons-material/BarChart';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { Paper, InputBase } from '@mui/material';
@@ -169,8 +170,8 @@ function Questions() {
             else if (correctPercentFilter === "≤ 50%") {matchesCorrectPercentFilter = question.percent_correct <= 50}
             else if (correctPercentFilter === "≥ 75%") {matchesCorrectPercentFilter = question.percent_correct >= 75}
             else if (correctPercentFilter === "≤ 75%") {matchesCorrectPercentFilter = question.percent_correct <= 75}
-            else if (correctPercentFilter === "= 0%") {matchesCorrectPercentFilter = question.percent_correct == 0}
-            else if (correctPercentFilter === "= 100%") {matchesCorrectPercentFilter = question.percent_correct == 100}
+            else if (correctPercentFilter === "= 0%") {matchesCorrectPercentFilter = question.percent_correct === 0}
+            else if (correctPercentFilter === "= 100%") {matchesCorrectPercentFilter = question.percent_correct === 100}
 
             return matchesSearch && matchesDate && matchesTypeFilter && matchesAvgTimeFilter && matchesCorrectPercentFilter;
         });
@@ -587,64 +588,37 @@ function Questions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            <BarChart 
-                                xAxis={[{label:"Question type", data: qTypeBarChartData.map(grouping => grouping.type)}]}
-                                yAxis={[{label:"Total answers", width:60}]}
-                                series={[
-                                    {label:"Correct answers", data: qTypeBarChartData.map(grouping => grouping.correct), color:"#0dcaef", stack:'a'},
-                                    {label:"Incorrect answers", data: qTypeBarChartData.map(grouping => grouping.incorrect), color:"tomato", stack:'a'}
-                                ]}
-                                width={700}
-                                height={400}
-                                slotProps={{
-                                    axisLabel: {
-                                    style: {
-                                        fontWeight: 'bold',
-                                        fontSize: '16px',
-                                    },
-                                    },
-                                }}
-                            />
-                            </div>
-                        } {dataView === "Total answers by questions graph" &&
-                            <div className="d-flex flex-column justify-content-center">
-                                <div className="d-flex flex-row justify-content-center flex-wrap">
-                                    <FormGroup className="d-flex flex-row my-3">
-                                        <FormControlLabel
-                                            control={
-                                            <Checkbox checked={lineChartVisible.answered}  onChange={() => toggleLineChartVisible('answered')}/>
-                                            }
-                                            label="Answered"
-                                        />
-                                        <FormControlLabel
-                                            control={
-                                            <Checkbox checked={lineChartVisible.correctly_answered} onChange={() => toggleLineChartVisible('correctly_answered')}/>
-                                            }
-                                            label="Correctly answered"
-                                        />
-                                    </FormGroup>
-                                    <Tooltip arrow placement="top" title="Open, Form and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
-                                        {typesIncludeExclude ? (
-                                            <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("include"); setTypesIncludeExclude(false)}}>Include Open, Form and Rating questions</button>
-                                        ) : (
-                                            <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("exclude"); setTypesIncludeExclude(true)}}>Exclude Open, Form and Rating questions</button>
-                                        )}
-                                    </Tooltip>
-                                </div>
-                                <LineChart 
-                                    xAxis={[{scaleType:'point', data:lineChartQuestions}]}
+                            {qTypeBarChartData.length > 0 ? (
+                                <BarChart 
+                                    xAxis={[{label:"Question type", data: qTypeBarChartData.map(grouping => grouping.type)}]}
+                                    yAxis={[{label:"Total answers", width:60}]}
                                     series={[
-                                        lineChartVisible.answered && {data:lineChartAnswered, label:'Total answers', color:"dodgerblue", showMark:false},
-                                        lineChartVisible.correctly_answered && {data:lineChartCorrectlyAnswered, label:'Total correct answers', color:"orange", showMark:false},
-                                    ].filter(Boolean)} // To filter out lines toggled off (false)
+                                        {label:"Correct answers", data: qTypeBarChartData.map(grouping => grouping.correct), color:"#0dcaef", stack:'a'},
+                                        {label:"Incorrect answers", data: qTypeBarChartData.map(grouping => grouping.incorrect), color:"tomato", stack:'a'}
+                                    ]}
+                                    width={700}
                                     height={400}
+                                    slotProps={{
+                                        axisLabel: {
+                                        style: {
+                                            fontWeight: 'bold',
+                                            fontSize: '16px',
+                                        },
+                                        },
+                                    }}
                                 />
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No question data to display</h5>
+                                </Paper>
+                            )}
                             </div>
                         } {dataView === "Response breakdown graph" &&
                             <div className="d-flex flex-column">
                             <div className="my-3 d-flex flex-row flex-wrap justify-content-center">
                                 <h4 className="me-3 my-1">Selected question: </h4>
-                                <Tooltip arrow placement="top" title="You may only select questions that have a finite pool of correct or incorrect responses">
+                                <Tooltip arrow placement="top" title="Only includes questions that have a finite pool of correct or incorrect responses">
                                     <Paper className="w-50" elevation={1}>
                                         <Select 
                                             className="basic-single" 
@@ -675,53 +649,102 @@ function Questions() {
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setResponseBreakdownChart("Bar")}>Bar Chart</button>
                                 </div>
                                 <div className="d-flex flex-row justify-content-around">
-                                    <p className="my-2">Response breakdown for other questions: </p>
+                                    <p className="my-2">Response breakdown for all questions: </p>
                                     <Link to={`https://studio.hihaho.com/stats/${videos.find(video => video.video_id === videoFilter)?.uuid}`} target="_blank"><IconButton><BarChartIcon /></IconButton></Link>
                                 </div>
                             </div>
-                            {responseBreakdownChart === "Bar" &&
-                                <BarChart 
-                                    xAxis={[{
-                                        label: "Options",
-                                        scaleType: "band",
-                                        data: answeredByQuestionBarData.map(answer => answer.label),
-                                        colorMap: {
-                                            type: "ordinal",
-                                            values: answeredByQuestionBarData.map(answer => answer.label),
-                                            colors: answeredByQuestionBarData.map(answer => answer.color),
-                                        }
-                                    }]}
-                                    yAxis={[{label:"Number of responses"}]}
-                                    series={[{
-                                        label:"Number of responses",
-                                        data:answeredByQuestionBarData.map(answer => answer.value)
-                                    }]}
-                                    width={700}
-                                    height={400}
-                                    slotProps={{
-                                        axisLabel: {
-                                        style: {
-                                            fontWeight: 'bold',
-                                            fontSize: '16px',
-                                        },
-                                        },
-                                    }}
-                                />
-                            } {responseBreakdownChart === "Pie" &&
-                                <PieChart 
-                                    series={[{
-                                        data:answeredByQuestionPieData,
-                                        arcLabel:(answer) => answer.label,
-                                        arcLabelMinAngle:15
-                                    }]}
-                                    colors={piePallette}
-                                    width={800}
-                                    height={400}
-                                />
-                            }
-                            
+                            {answeredByQuestionBarData.length > 0 ? (
+                            <>
+                                {responseBreakdownChart === "Bar" &&
+                                    <BarChart 
+                                        xAxis={[{
+                                            label: "Options",
+                                            scaleType: "band",
+                                            data: answeredByQuestionBarData.map(answer => answer.label),
+                                            colorMap: {
+                                                type: "ordinal",
+                                                values: answeredByQuestionBarData.map(answer => answer.label),
+                                                colors: answeredByQuestionBarData.map(answer => answer.color),
+                                            }
+                                        }]}
+                                        yAxis={[{label:"Number of responses"}]}
+                                        series={[{
+                                            label:"Number of responses",
+                                            data:answeredByQuestionBarData.map(answer => answer.value)
+                                        }]}
+                                        width={700}
+                                        height={400}
+                                        slotProps={{
+                                            axisLabel: {
+                                            style: {
+                                                fontWeight: 'bold',
+                                                fontSize: '16px',
+                                            },
+                                            },
+                                        }}
+                                    />
+                                } {responseBreakdownChart === "Pie" &&
+                                    <PieChart 
+                                        series={[{
+                                            data:answeredByQuestionPieData,
+                                            arcLabel:(answer) => answer.label,
+                                            arcLabelMinAngle:15
+                                        }]}
+                                        colors={piePallette}
+                                        width={800}
+                                        height={400}
+                                    />
+                                }
+                            </>
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No answer data to display</h5>
+                                </Paper>
+                            )}
                             </div>
-                        }
+                        } {dataView === "Total answers by questions graph" &&
+                            <div className="d-flex flex-column justify-content-center">
+                                <div className="d-flex flex-row justify-content-center flex-wrap">
+                                    <FormGroup className="d-flex flex-row my-3">
+                                        <FormControlLabel
+                                            control={
+                                            <Checkbox checked={lineChartVisible.answered}  onChange={() => toggleLineChartVisible('answered')}/>
+                                            }
+                                            label="Answered"
+                                        />
+                                        <FormControlLabel
+                                            control={
+                                            <Checkbox checked={lineChartVisible.correctly_answered} onChange={() => toggleLineChartVisible('correctly_answered')}/>
+                                            }
+                                            label="Correctly answered"
+                                        />
+                                    </FormGroup>
+                                    <Tooltip arrow placement="top" title="Open, Form and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
+                                        {typesIncludeExclude ? (
+                                            <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("include"); setTypesIncludeExclude(false)}}>Include Open, Form and Rating questions</button>
+                                        ) : (
+                                            <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("exclude"); setTypesIncludeExclude(true)}}>Exclude Open, Form and Rating questions</button>
+                                        )}
+                                    </Tooltip>
+                                </div>
+                                {filteredQuestions.length > 1 ? (
+                                    <LineChart 
+                                        xAxis={[{scaleType:'point', data:lineChartQuestions}]}
+                                        series={[
+                                            lineChartVisible.answered && {data:lineChartAnswered, label:'Total answers', color:"dodgerblue", showMark:false},
+                                            lineChartVisible.correctly_answered && {data:lineChartCorrectlyAnswered, label:'Total correct answers', color:"orange", showMark:false},
+                                        ].filter(Boolean)} // To filter out lines toggled off (false)
+                                        height={400}
+                                    />
+                                ) : (
+                                    <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                        <HighlightOffIcon className="mx-2"/>
+                                        <h5>Too little data to display</h5>
+                                    </Paper>
+                                )}
+                            </div>
+                        } 
                         
                     </div>
                 </div>
