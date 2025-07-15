@@ -18,7 +18,7 @@
     "jwt-decode": "^4.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-loading-dot": "^1.0.6",
+    "react-loading-icons": "^1.1.0",
     "react-pro-sidebar": "^1.1.0",
     "react-router-dom": "^7.6.1",
     "react-scripts": "^5.0.1",

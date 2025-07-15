@@ -16,6 +16,7 @@ import { Paper, InputBase, Tooltip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { BarChart, PieChart } from '@mui/x-charts';
+import { ThreeDots } from 'react-loading-icons';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
@@ -349,43 +350,63 @@ function Summary() {
                             <div className="d-flex flex-row justify-content-around flex-wrap">
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Total Videos </h3>
+                                    {filteredAggrStats.num_videos ? (
+                                    <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.num_videos?.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.num_videos.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.num_videos?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.num_videos / aggrStats.num_videos) * 100).toFixed(2)) || 0}%</h3>
+                                    </>
+                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
-                                    <h3 className="text-secondary">Total Views</h3>
+                                    <h3 className="text-secondary">Total Views </h3>
+                                    {filteredAggrStats.total_views ? (
+                                    <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.total_views?.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.total_views.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.total_views?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.total_views / aggrStats.total_views) * 100).toFixed(2)) || 0}%</h3>
+                                    </>
+                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
-                                    <h3 className="text-secondary">Started Views</h3>
+                                    <h3 className="text-secondary">Started Views </h3>
+                                    {filteredAggrStats.started_views ? (
+                                    <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.started_views?.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.started_views.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.started_views?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.started_views / aggrStats.started_views) * 100).toFixed(2)) || 0}%</h3>
+                                    </>
+                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
-                                    <h3 className="text-secondary">Finished Views</h3>
+                                    <h3 className="text-secondary">Finished Views </h3>
+                                    {filteredAggrStats.finished_views ? (
+                                    <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.finished_views?.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.finished_views.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.finished_views?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.finished_views / aggrStats.finished_views) * 100).toFixed(2)) || 0}%</h3>
+                                    </>
+                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
-                                    <h3 className="text-secondary">Interaction Clicks</h3>
+                                    <h3 className="text-secondary">Interaction Clicks </h3>
+                                    {filteredAggrStats.interaction_clicks ? (
+                                    <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.interaction_clicks?.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.interaction_clicks.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.interaction_clicks?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.interaction_clicks / aggrStats.interaction_clicks) * 100).toFixed(2)) || 0}%</h3>
+                                    </>
+                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
                                 </Paper>
                             </div>
 
@@ -649,7 +670,7 @@ function Summary() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {allInteractions === null || allInteractions?.length <= 0 &&
+                            {(allInteractions === null || allInteractions?.length <= 0) &&
                                 <h4 className="text-center mt-4">Loading interaction data...</h4>
                             } {allInteractions?.length > 0 && interactionsPerTypeChart === "Pie" &&
                                 <div className="d-flex flex-column justify-content-center">
@@ -722,7 +743,7 @@ function Summary() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {allQuestions === null || allQuestions?.length <= 0 &&
+                            {(allQuestions === null || allQuestions?.length <= 0) &&
                                 <h4 className="text-center mt-4">Loading question data...</h4>
                             } {allQuestions?.length > 0 && questionsPerTypeChart === "Pie" &&
                                 <div className="d-flex flex-column justify-content-center">
