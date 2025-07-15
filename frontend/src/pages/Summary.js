@@ -215,6 +215,7 @@ function Summary() {
             .catch(err => console.error(err));
     }, []);
 
+    //----------------------Handle filter from other page navigation----------------------//
     useEffect(() => {
         if (videoIdFromOtherPageFlag && videoFilter !== null) {
             setSearchQuery(String(videoFilter));
