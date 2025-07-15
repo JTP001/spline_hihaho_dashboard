@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import Layout from "../components/Layout";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useVideoFilter } from '../context/VideoFilterContext';
 import { IconButton, Menu, MenuItem, Typography, Checkbox, FormControlLabel, Box } from '@mui/material';
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -29,7 +29,7 @@ dayjs.extend(isSameOrAfter);
 function Summary() {
     const [user, setUser] = useState(null);
     const [videoStats, setVideoStats] = useState([]);
-    const { setVideoFilter } = useVideoFilter();
+    const { videoFilter, setVideoFilter } = useVideoFilter();
     const [aggrStats, setAggrStats] = useState({});
     const [filteredAggrStats, setFilteredAggrStats] = useState({});
     const [videoRatings, setVideoRatings] = useState([]);
@@ -48,6 +48,8 @@ function Summary() {
     const filterMenuOpen = Boolean(anchorFilterMenu); // Filter menu is open when it is not null
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
+    const location = useLocation();
+    const videoIdFromOtherPageFlag = location.state?.videoIdFromOtherPageFlag || false; // Default to false if undefined
     const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon", "aquamarine", "bisque", "green", "purple", "orange", "brown", "darkcyan"];
     const statusFilterText = [
         "Only you",
@@ -174,10 +176,10 @@ function Summary() {
         };
 
         filteredStats.forEach(video => {
-            aggregated_stats.total_views += video.total_views;
-            aggregated_stats.started_views += video.started_views;
-            aggregated_stats.finished_views += video.finished_views;
-            aggregated_stats.interaction_clicks += video.interaction_clicks;
+            aggregated_stats.total_views += (video.total_views ?? 0);
+            aggregated_stats.started_views += (video.started_views ?? 0);
+            aggregated_stats.finished_views += (video.finished_views ?? 0);
+            aggregated_stats.interaction_clicks += (video.interaction_clicks ?? 0);
         });
 
         setFilteredAggrStats(aggregated_stats);
@@ -212,6 +214,12 @@ function Summary() {
             })
             .catch(err => console.error(err));
     }, []);
+
+    useEffect(() => {
+        if (videoIdFromOtherPageFlag && videoFilter !== null) {
+            setSearchQuery(String(videoFilter));
+        }
+    }, [videoIdFromOtherPageFlag, videoFilter])
 
     //----------------------Create 'interactions by type' chart data----------------------//
     const filteredVideoIds = new Set(filteredStats.map(stat => stat.video.video_id));
@@ -350,7 +358,7 @@ function Summary() {
                             <div className="d-flex flex-row justify-content-around flex-wrap">
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Total Videos </h3>
-                                    {filteredAggrStats.num_videos ? (
+                                    {Number.isFinite(filteredAggrStats.num_videos) ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
                                         <h3 className="text-info">{filteredAggrStats.num_videos.toLocaleString()}</h3>
@@ -362,7 +370,7 @@ function Summary() {
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Total Views </h3>
-                                    {filteredAggrStats.total_views ? (
+                                    {Number.isFinite(filteredAggrStats.total_views) ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
                                         <h3 className="text-info">{filteredAggrStats.total_views.toLocaleString()}</h3>
@@ -374,7 +382,7 @@ function Summary() {
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Started Views </h3>
-                                    {filteredAggrStats.started_views ? (
+                                    {Number.isFinite(filteredAggrStats.started_views) ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
                                         <h3 className="text-info">{filteredAggrStats.started_views.toLocaleString()}</h3>
@@ -386,7 +394,7 @@ function Summary() {
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Finished Views </h3>
-                                    {filteredAggrStats.finished_views ? (
+                                    {Number.isFinite(filteredAggrStats.finished_views) ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
                                         <h3 className="text-info">{filteredAggrStats.finished_views.toLocaleString()}</h3>
@@ -398,7 +406,7 @@ function Summary() {
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Interaction Clicks </h3>
-                                    {filteredAggrStats.interaction_clicks ? (
+                                    {Number.isFinite(filteredAggrStats.interaction_clicks) ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
                                         <h3 className="text-info">{filteredAggrStats.interaction_clicks.toLocaleString()}</h3>

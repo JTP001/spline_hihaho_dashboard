@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import Layout from "../components/Layout";
+import { Link } from "react-router-dom";
 import { useVideoFilter } from "../context/VideoFilterContext";
 import { BarChart, LineChart, PieChart } from '@mui/x-charts';
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
-import { Paper, InputBase } from '@mui/material';
+import { Paper, InputBase, IconButton, Tooltip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import SummarizeIcon from '@mui/icons-material/Summarize';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
@@ -271,7 +273,7 @@ function Interactions() {
                         </div>
                         <div className="my-3 d-flex flex-row flex-wrap justify-content-center">
                             <h3 className="me-3">Showing interactions from: </h3>
-                            <Paper className="w-75" elevation={1}>
+                            <Paper className="w-75 my-1" elevation={2}>
                                 <Select 
                                     className="basic-single" 
                                     classNamePrefix="select"
@@ -288,6 +290,11 @@ function Interactions() {
                                     onChange={handleSelectVideoFilterChange}
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}
                                 />
+                            </Paper>
+                            <Paper className="mx-3 rounded-5 mt-1" elevation={2}>
+                                <Tooltip arrow title="Filter for this video in Summary" placement="top">
+                                    <Link to="/summary/" state={{videoIdFromOtherPageFlag:true}}><IconButton><SummarizeIcon/></IconButton></Link>
+                                </Tooltip>
                             </Paper>
                         </div>
                         <div className="my-4 d-flex flex-row flex-wrap justify-content-around">

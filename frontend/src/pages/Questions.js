@@ -11,6 +11,7 @@ import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { Paper, InputBase } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import SummarizeIcon from '@mui/icons-material/Summarize';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
@@ -287,7 +288,7 @@ function Questions() {
                         </div>
                         <div className="my-3 d-flex flex-row flex-wrap justify-content-center">
                             <h3 className="me-3">Showing question data from: </h3>
-                            <Paper className="w-75" elevation={1}>
+                            <Paper className="w-75 my-1" elevation={2}>
                                 <Select 
                                     className="basic-single" 
                                     classNamePrefix="select"
@@ -304,6 +305,11 @@ function Questions() {
                                     onChange={handleSelectVideoFilterChange}
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}
                                 />
+                            </Paper>
+                            <Paper className="mx-3 rounded-5 mt-1" elevation={2}>
+                                <Tooltip arrow title="Filter for this video in Summary" placement="top">
+                                    <Link to="/summary/" state={{videoIdFromOtherPageFlag:true}}><IconButton><SummarizeIcon/></IconButton></Link>
+                                </Tooltip>
                             </Paper>
                         </div>
                         <div className="my-4 d-flex flex-row flex-wrap justify-content-around">
@@ -619,7 +625,7 @@ function Questions() {
                             <div className="my-3 d-flex flex-row flex-wrap justify-content-center">
                                 <h4 className="me-3 my-1">Selected question: </h4>
                                 <Tooltip arrow placement="top" title="Only includes questions that have a finite pool of correct or incorrect responses">
-                                    <Paper className="w-50" elevation={1}>
+                                    <Paper className="w-50" elevation={2}>
                                         <Select 
                                             className="basic-single" 
                                             classNamePrefix="select"
