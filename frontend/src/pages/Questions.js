@@ -30,6 +30,7 @@ function Questions() {
     const { videoFilter, setVideoFilter } = useVideoFilter();
     const [dataView, setDataView] = useState("Correct answers per type graph");
     const [responseBreakdownChart, setResponseBreakdownChart] = useState("Bar");
+    const [questionsPerTypeChart, setQuestionsPerTypeChart] = useState("Bar");
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [pageNum, setPageNum] = useState(0);
     const [orderBy, setOrderBy] = useState("question_id");
@@ -255,6 +256,28 @@ function Questions() {
             return {id:index, label:`"${answer.label}": ${percent}% (${answer.value})`, value:answer.value};
         });
 
+    //----------------------Create 'questions by type' chart data----------------------//
+    const questionCountByType = filteredQuestions.reduce((total, question) => {
+        const type = question.type;
+        if (!total[type]) {
+            total[type] = 0;
+        }
+        total[type] += 1;
+        return total
+    }, {});
+
+    const typeCountBarChartData = Object.entries(questionCountByType).map(([type, total_questions]) => ({
+        type,
+        total_questions,
+    })).sort((a, b) => b.total_questions - a.total_questions);;
+
+    const typeCountPiePercentData = typeCountBarChartData.reduce((sum, grouping) => sum += grouping.total_questions, 1)
+
+    const typeCountPieChartData = typeCountBarChartData.map((grouping, index) => {
+        const percent = ((grouping.total_questions/typeCountPiePercentData) * 100).toFixed(1);
+        return {id:index, value:grouping.total_questions, label:`${grouping.type}: ${percent}%`};
+    })
+
     //--------------------------------Handle extra filters--------------------------------//
     const handleTypeFilterToggle = (value) => {
         setTypeFilter((prev) => 
@@ -316,6 +339,7 @@ function Questions() {
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Correct answers per type graph")}>Correct Answers per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Response breakdown graph")}>Response breakdown</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Total answers by questions graph")}>Answers by questions</button>
+                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions per type graphs")}>Questions per type</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Questions table")}>Questions table</button>
                         </div>
                         {dataView === "Questions table" &&
@@ -750,7 +774,60 @@ function Questions() {
                                     </Paper>
                                 )}
                             </div>
-                        } 
+                        } {dataView === "Questions per type graphs" &&
+                            <div className="d-flex flex-column">
+                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                                <div className="my-3 d-flex flex-row justify-content-around">
+                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setQuestionsPerTypeChart("Pie")}>Pie Chart</button>
+                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setQuestionsPerTypeChart("Bar")}>Bar Chart</button>
+                                </div>
+                                <CustomDatePicker 
+                                    startDate={startDate} 
+                                    setStartDate={setStartDate} 
+                                    endDate={endDate} 
+                                    setEndDate={setEndDate} 
+                                    viewsList={['year', 'month', 'day']}
+                                />
+                            </div>
+                            {filteredQuestions.length > 0 ? (
+                                <>
+                                {questionsPerTypeChart === "Pie" &&
+                                    <PieChart
+                                        colors={piePallette}
+                                        series={[{
+                                            arcLabel:(grouping) => `${grouping.label} (${grouping.value})`,
+                                            data: typeCountPieChartData,
+                                            arcLabelMinAngle:40
+                                        }]}
+                                        width={800}
+                                        height={400}
+                                    />
+                                } {questionsPerTypeChart === "Bar" &&
+                                    <BarChart 
+                                        xAxis={[{label:"Question type", data: typeCountBarChartData.map(grouping => grouping.type)}]}
+                                        yAxis={[{label:"Total questions", width:60}]}
+                                        series={[{label:"Total amount of questions per type", data: typeCountBarChartData.map(grouping => grouping.total_questions), color:"#0dcaef"}]}
+                                        width={700}
+                                        height={400}
+                                        slotProps={{
+                                            axisLabel: {
+                                            style: {
+                                                fontWeight: 'bold',
+                                                fontSize: '16px',
+                                            },
+                                            },
+                                        }}
+                                    />
+                                }
+                                </>
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No question data to display</h5>
+                                </Paper>
+                            )}
+                            </div>
+                        }
                         
                     </div>
                 </div>

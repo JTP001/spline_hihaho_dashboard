@@ -359,10 +359,10 @@ function Summary() {
                             <div className="d-flex flex-row justify-content-around flex-wrap">
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Total Videos </h3>
-                                    {Number.isFinite(filteredAggrStats.num_videos) ? (
+                                    {filteredAggrStats.num_videos ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.num_videos.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.num_videos?.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.num_videos?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.num_videos / aggrStats.num_videos) * 100).toFixed(2)) || 0}%</h3>
@@ -371,10 +371,10 @@ function Summary() {
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Total Views </h3>
-                                    {Number.isFinite(filteredAggrStats.total_views) ? (
+                                    {filteredAggrStats.num_videos ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.total_views.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.total_views?.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.total_views?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.total_views / aggrStats.total_views) * 100).toFixed(2)) || 0}%</h3>
@@ -383,10 +383,10 @@ function Summary() {
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Started Views </h3>
-                                    {Number.isFinite(filteredAggrStats.started_views) ? (
+                                    {filteredAggrStats.num_videos ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.started_views.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.started_views?.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.started_views?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.started_views / aggrStats.started_views) * 100).toFixed(2)) || 0}%</h3>
@@ -395,10 +395,10 @@ function Summary() {
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Finished Views </h3>
-                                    {Number.isFinite(filteredAggrStats.finished_views) ? (
+                                    {filteredAggrStats.num_videos ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.finished_views.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.finished_views?.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.finished_views?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.finished_views / aggrStats.finished_views) * 100).toFixed(2)) || 0}%</h3>
@@ -407,10 +407,10 @@ function Summary() {
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Interaction Clicks </h3>
-                                    {Number.isFinite(filteredAggrStats.interaction_clicks) ? (
+                                    {filteredAggrStats.num_videos ? (
                                     <>
                                     <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.interaction_clicks.toLocaleString()}</h3>
+                                        <h3 className="text-info">{filteredAggrStats.interaction_clicks?.toLocaleString()}</h3>
                                         <h3 className="text-secondary">/{aggrStats.interaction_clicks?.toLocaleString()}</h3>
                                     </div>
                                     <h3 className="text-info">{Number(((filteredAggrStats.interaction_clicks / aggrStats.interaction_clicks) * 100).toFixed(2)) || 0}%</h3>
