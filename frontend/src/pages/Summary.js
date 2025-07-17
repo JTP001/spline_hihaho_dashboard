@@ -419,8 +419,8 @@ function Summary() {
                                 </Paper>
                             </div>
 
-                            <div className="d-flex flex-row justify-content-around flex-wrap">
-                                <Paper elevation={2} className="p-1 my-3 w-50 d-flex align-items-center">
+                            <div className="d-flex flex-row justify-content-around flex-wrap align-items-center">
+                                <Paper elevation={2} className="p-2 w-50 d-flex align-items-center">
                                     <SearchIcon className="mx-2" />
                                     <InputBase 
                                         className="flex-grow-1"
@@ -430,7 +430,7 @@ function Summary() {
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
                                 </Paper>
-                                <Paper className="my-3 d-flex justify-content-center rounded-5" elevation={2}>
+                                <Paper className="d-flex justify-content-center rounded-5" elevation={2}>
                                     <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
                                         <FilterListIcon />
                                     </IconButton>

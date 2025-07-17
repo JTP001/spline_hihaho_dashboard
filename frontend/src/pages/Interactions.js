@@ -267,13 +267,13 @@ function Interactions() {
         <Layout>
             {isLoggedIn ? (
                 <div className="container rounded min-vh-100">
-                    <div className="mx-3">
+                    <div className="mx-3 d-flex flex-column justify-content-center">
                         <div className="my-3 d-flex flex-row justify-content-center">
                             <h1>Interaction Insights</h1>
                         </div>
-                        <div className="my-3 d-flex flex-row flex-wrap justify-content-center">
-                            <h3 className="me-3">Showing interactions from: </h3>
-                            <Paper className="w-75 my-1" elevation={2}>
+                        <h3 className="mx-auto">Showing interactions from: </h3>
+                        <div className="my-2 d-flex flex-row flex-wrap justify-content-center align-items-center">
+                            <Paper className="w-75" elevation={2}>
                                 <Select 
                                     className="basic-single" 
                                     classNamePrefix="select"
@@ -291,7 +291,7 @@ function Interactions() {
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}
                                 />
                             </Paper>
-                            <Paper className="mx-3 rounded-5 mt-1" elevation={2}>
+                            <Paper className="mx-3 rounded-5" elevation={2}>
                                 <Tooltip arrow title="Filter for this video in Summary" placement="top">
                                     <Link to="/summary/" state={{videoIdFromOtherPageFlag:true}}><IconButton><SummarizeIcon/></IconButton></Link>
                                 </Tooltip>
@@ -306,8 +306,8 @@ function Interactions() {
                         </div>
                         {dataView === "Interaction table" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-around flex-wrap">
-                                <Paper elevation={2} component="form" className="p-1 my-3 w-50 d-flex align-items-center">
+                            <div className="d-flex flex-row justify-content-around flex-wrap align-items-center">
+                                <Paper elevation={2} component="form" className="p-2 w-50 d-flex align-items-center">
                                     <SearchIcon className="mx-2" />
                                     <InputBase 
                                         className="flex-grow-1"

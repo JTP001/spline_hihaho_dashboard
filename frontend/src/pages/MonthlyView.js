@@ -211,13 +211,13 @@ function MonthlyView() {
         <Layout>
             {isLoggedIn ? (
                 <div className="container min-vh-100">
-                    <div className="mx-3 d-flex flex-column">
+                    <div className="mx-3 d-flex flex-column justify-content-center">
                         <div className="my-3 d-flex flex-row justify-content-center">
                             <h1>Monthly View Performance</h1>
                         </div>
-                        <div className="my-3 d-flex flex-row flex-wrap justify-content-center">
-                            <h3 className="me-3">Showing monthly data from: </h3>
-                            <Paper className="w-75 my-1" elevation={2}>
+                        <h3 className="mx-auto">Showing monthly data from: </h3>
+                        <div className="my-2 d-flex flex-row flex-wrap justify-content-center align-items-center">
+                            <Paper className="w-75" elevation={2}>
                                 <Select 
                                     className="basic-single" 
                                     classNamePrefix="select"
@@ -235,7 +235,7 @@ function MonthlyView() {
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}
                                 />
                             </Paper>
-                            <Paper className="mx-3 rounded-5 mt-1" elevation={2}>
+                            <Paper className="mx-3 rounded-5" elevation={2}>
                                 <Tooltip arrow title="Filter for this video in Summary" placement="top">
                                     <Link to="/summary/" state={{videoIdFromOtherPageFlag:true}}><IconButton><SummarizeIcon/></IconButton></Link>
                                 </Tooltip>
