@@ -26,7 +26,7 @@ function Settings() {
                                 "Authorization": `Bearer ${token}`
                             }
                         }
-                        await axiosInstance.get("api/user/", config)
+                        await axiosInstance.get("user/", config)
                         .then((response) => {
                             setUser(response.data);
                             setFormData({
@@ -74,7 +74,7 @@ function Settings() {
                 delete dataToSend.password;
             }
 
-            await axiosInstance.patch("api/user/update/", dataToSend)
+            await axiosInstance.patch("user/update/", dataToSend)
             .then((response) => {
                 setError(null);
                 setSuccessMessage(true);

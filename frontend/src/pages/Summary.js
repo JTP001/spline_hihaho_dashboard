@@ -70,7 +70,7 @@ function Summary() {
                             "Authorization": `Bearer ${token}`
                         }
                     }
-                    await axiosInstance.get("api/user/", config)
+                    await axiosInstance.get("user/", config)
                     .then((response) => {
                         setUser(response.data);
                     })

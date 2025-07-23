@@ -2,7 +2,7 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import dayjs from "dayjs";
 
-const BASE_URL = "http://127.0.0.1:8000/";
+const BASE_URL = "http://127.0.0.1:8000/api/";
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -20,7 +20,7 @@ axiosInstance.interceptors.request.use(async (req) => {
         if (isExpired) {
             try {
                 const refreshToken = localStorage.getItem('refreshToken');
-                const response = await axios.post(`${BASE_URL}api/token/refresh/`, {
+                const response = await axios.post(`${BASE_URL}token/refresh/`, {
                     refresh: refreshToken,
                 });
 
