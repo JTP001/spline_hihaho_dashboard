@@ -28,7 +28,7 @@ function Login() {
         setIsLoading(true);
 
         try {
-            await axiosInstance.post("api/login/", formData)
+            await axiosInstance.post("login/", formData)
             .then((response) => {
                 setError(null);
                 localStorage.setItem("accessToken", response.data.tokens.access);

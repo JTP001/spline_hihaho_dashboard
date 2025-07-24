@@ -34,7 +34,7 @@ function HihahoSidebar() {
                         "Authorization": `Bearer ${accessToken}`
                     }
                 };
-                await axiosInstance.post("api/logout/", {'refresh': refreshToken}, config)
+                await axiosInstance.post("logout/", {'refresh': refreshToken}, config)
                 localStorage.removeItem("accessToken");
                 localStorage.removeItem('refreshToken');
                 nav("/login/");

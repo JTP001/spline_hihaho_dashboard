@@ -46,3 +46,9 @@ frontend/.parcel-cache/
 frontend/.turbo/
 frontend/.next/
 frontend/.cache/
+
+# ========================
+# Docker Ignores
+# ========================
+*.log
+postgres_data/

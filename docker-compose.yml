@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: hihaho-dashboard-backend
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/hihaho-dashboard-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: hihaho-dashboard-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:15
+    container_name: hihaho-db
+    environment:
+      POSTGRES_USER: dashboarduser
+      POSTGRES_PASSWORD: dashboardpass
+      POSTGRES_DB: dashboard
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

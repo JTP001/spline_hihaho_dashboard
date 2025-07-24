@@ -30,7 +30,7 @@ function Register() {
         setIsLoading(true);
 
         try {
-            await axiosInstance.post("api/register/", formData)
+            await axiosInstance.post("register/", formData)
             .then((response) => {
                 setError(null);
                 localStorage.setItem("accessToken", response.data.tokens.access);
