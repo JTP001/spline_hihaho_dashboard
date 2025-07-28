@@ -51,4 +51,5 @@ frontend/.cache/
 # Docker Ignores
 # ========================
 *.log
+*.tar
 postgres_data/

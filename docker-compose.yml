@@ -22,6 +22,8 @@ services:
       - "80:80"
     depends_on:
       - backend
+    env_file:
+      - .env
 
   db:
     image: postgres:15
