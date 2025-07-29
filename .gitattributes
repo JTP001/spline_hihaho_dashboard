@@ -1,0 +1,2 @@
+# Force shell scripts to use LF, needed for docker-entrypoint.sh
+*.sh text eol=lf
