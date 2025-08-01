@@ -115,7 +115,7 @@ function MonthlyView() {
     );
     
     //--------------------Create 'views by month' line chart data--------------------//
-    const lineChartMonths = filteredMonthlyData.map(monthData => monthData.month.format('MMM YYYY'));
+    const lineChartMonths = [...filteredMonthlyData].sort((a, b) => a.month < b.month).map(monthData => monthData.month.format('MMM YYYY'));
     const lineChartStartedViews = filteredMonthlyData.map(monthData => monthData.started_views);
     const lineChartFinishedViews = filteredMonthlyData.map(monthData => monthData.finished_views);
     const lineChartPassedViews = filteredMonthlyData.map(monthData => monthData.passed_views);
