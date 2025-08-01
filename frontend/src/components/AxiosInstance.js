@@ -6,7 +6,7 @@ const BASE_URL = window._env_.REACT_APP_API_URL + "/api/";
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout:10000
+  timeout:30000
 });
 
 axiosInstance.interceptors.request.use(async (req) => {

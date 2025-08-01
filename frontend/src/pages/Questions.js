@@ -251,7 +251,6 @@ function Questions() {
     const answeredByQuestionPieData = answeredByQuestionBarData.sort((a, b) => b.value - a.value)
         .map((answer, index) => {
             const question = questions.find(question => question.question_id === selectedQuestion);
-            console.log(question);
             const percent = ((answer.value/question.total_answered) * 100).toFixed(1);
             return {id:index, label:`"${answer.label}": ${percent}% (${answer.value})`, value:answer.value};
         });
