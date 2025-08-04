@@ -5,8 +5,7 @@ import dayjs from "dayjs";
 const BASE_URL = window._env_.REACT_APP_API_URL + "/api/";
 
 const axiosInstance = axios.create({
-  baseURL: BASE_URL,
-  timeout:30000
+  baseURL: BASE_URL
 });
 
 axiosInstance.interceptors.request.use(async (req) => {
