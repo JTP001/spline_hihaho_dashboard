@@ -206,7 +206,7 @@ class Command(BaseCommand):
                         defaults={
                             "title": interaction.get("title") or "",
                             "type": existing.type if existing else "",
-                            "action_type": existing.action_type,
+                            "action_type": existing.action_type if existing else "",
                             "start_time_seconds": interaction.get("start_time") or 0.0,
                             "end_time_seconds": interaction.get("end_time") or 0.0,
                             "duration_seconds": existing.duration_seconds if existing else 0.0,
