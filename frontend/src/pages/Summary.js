@@ -515,7 +515,6 @@ function Summary() {
                                                     Video Title
                                                 </TableSortLabel> 
                                             </TableCell>
-                                            <TableCell align="center">Hihaho Folder</TableCell>
                                             <TableCell align="center">
                                                 <TableSortLabel 
                                                     active={orderBy === "total_views"}
@@ -568,6 +567,7 @@ function Summary() {
                                                     Access Status
                                                 </Tooltip>
                                             </TableCell>
+                                            <TableCell align="center">Hihaho Folder</TableCell>
                                             <TableCell align="center">Hihaho Links</TableCell>
                                             <TableCell align="center">Details</TableCell>
                                             <TableCell align="center">
@@ -609,9 +609,6 @@ function Summary() {
                                                         {videoStat.video.title}
                                                     </button>
                                                 </TableCell>
-                                                <TableCell className="border" align="center">
-                                                    {videoStat.video.folder_name} ({videoStat.video.folder_number})
-                                                </TableCell>
                                                 <TableCell className="border" align="right">
                                                     {videoStat.total_views?.toLocaleString()}
                                                 </TableCell>
@@ -636,6 +633,9 @@ function Summary() {
                                                     </TableCell>
                                                 }
                                                 <TableCell className="border" align="right">{videoStat.video.status}</TableCell>
+                                                <TableCell className="border" align="center">
+                                                    {videoStat.video.folder_name} ({videoStat.video.folder_number})
+                                                </TableCell>
                                                 <TableCell className="border" align="center">
                                                     <Tooltip arrow title="Preview video" placement="right-end">
                                                         <Link to={`https://player.hihaho.com/${videoStat.video.uuid}`} target="_blank"><IconButton><VisibilityIcon/></IconButton></Link>

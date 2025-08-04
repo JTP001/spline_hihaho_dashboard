@@ -166,33 +166,28 @@ class Command(BaseCommand):
                         }
                     )
 
-            # v_sessions = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/metadata")
-            # if v_sessions:
-            #     for session in v_sessions:
-            #         session_id = session.get("id")
-            #         user_agent = parse(session.get("user_agent"))
+            index = 1
+            v_session = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/views-by-user-agent")
+            if v_session:
+                for agent_type, count in v_session.items():
+                    if (agent_type != "unknown"):
+                        user_agent = parse(agent_type)
 
-            #         session_details = get_data_safe(f"{BASE_URL}/video/{video_id}/session/{session_id}")
-            #         last_reached_seconds = 0
-            #         last_reached_percent = 0
-            #         if (session_details):
-            #             last_reached_seconds = session_details.get("last_reached_point_seconds")
-            #             last_reached_percent = session_details.get("last_reached_point_percentage")
-
-            #         ViewSession.objects.update_or_create(
-            #             video=video_obj,
-            #             session_id=session_id,
-            #             defaults={
-            #                 "started_time_unix":session.get("started_at") or 0,
-            #                 "ended_time_unix":session.get("closed_at") or 0,
-            #                 "viewer_timezone":session.get("timezone") or "",
-            #                 "viewer_os":user_agent.os.family,
-            #                 "viewer_browser":user_agent.browser.family,
-            #                 "viewer_mobile":user_agent.is_mobile,
-            #                 "last_reached_seconds":last_reached_seconds,
-            #                 "last_reached_percent":last_reached_percent
-            #             }
-            #         )
+                        ViewSession.objects.update_or_create(
+                            video=video_obj,
+                            object_id=index,
+                            defaults={
+                                "viewer_os":user_agent.os.family or "",
+                                "os_version":user_agent.os.version_string or "",
+                                "viewer_browser":user_agent.browser.family or "",
+                                "browser_version":user_agent.browser.version_string or "",
+                                "viewer_device":user_agent.device.model or "N/A",
+                                "viewer_mobile":user_agent.is_mobile or False,
+                                "is_bot":user_agent.is_bot or False,
+                                "viewer_count":count or 0,
+                            }
+                        )
+                    index += 1
 
             interaction_list = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/interactions/")
             if interaction_list:
