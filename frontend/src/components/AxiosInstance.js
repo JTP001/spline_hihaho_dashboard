@@ -9,11 +9,19 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use(async (req) => {
+    // Make sure to check for paths that don't need auth like register/login/token refresh first
+    const excludedPaths = ['register', 'login', 'token/refresh'];
+
+    const shouldSkipAuth = excludedPaths.some(path =>
+        req.url?.includes(path)
+    );
+
+    if (shouldSkipAuth) {
+        return req;
+    }
+
     let token = localStorage.getItem("accessToken");
-
     if (token) {
-        req.headers.Authorization = `Bearer ${token}`;
-
         const user = jwtDecode(token);
         const isExpired = dayjs.unix(user.exp).diff(dayjs()) < 1000;
 

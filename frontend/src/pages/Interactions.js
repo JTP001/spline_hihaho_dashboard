@@ -94,7 +94,7 @@ function Interactions() {
             .then(res => {
                 const interactionsData = res.data.map(interaction => ({
                     ...interaction,
-                    created_at: dayjs(interaction.created_at)
+                    created_at: interaction.created_at ? dayjs(interaction.created_at) : dayjs(0)
                 }));
                 setInteractions(interactionsData);
                 setPageNum(0);
@@ -431,7 +431,7 @@ function Interactions() {
                                                 <TableCell className="border" align="right">
                                                     {interaction.total_clicks?.toLocaleString()}
                                                 </TableCell>
-                                                <TableCell className="border" align="center">{interaction.created_at.format("YYYY-MM-DD HH:mm")}</TableCell>
+                                                <TableCell className="border" align="center">{interaction.created_at !== dayjs(0) ? interaction.created_at.format("YYYY-MM-DD HH:mm") : "None"}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

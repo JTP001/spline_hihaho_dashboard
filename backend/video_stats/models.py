@@ -5,6 +5,8 @@ class Video(models.Model):
     uuid = models.CharField()
     title = models.CharField()
     status = models.IntegerField()
+    folder_name = models.CharField()
+    folder_number = models.IntegerField()
     created_date = models.DateTimeField()
 
     def __str__(self):
