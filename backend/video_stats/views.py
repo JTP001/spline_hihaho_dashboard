@@ -2,6 +2,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from .pagination import ViewPagination
 from django.http import HttpResponse, JsonResponse
 from datetime import datetime
 from calendar import monthrange
@@ -57,8 +58,9 @@ class VideoToJsonExportView(APIView):
 
 class InteractionStatsListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = InteractionStats.objects.all().order_by('-created_at')
+    queryset = InteractionStats.objects.all().order_by('-total_clicks')
     serializer_class = InteractionStatsSerializer
+    pagination_class = ViewPagination
 
 class InteractionStatsByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -72,6 +74,7 @@ class MonthlyViewsListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = MonthlyViews.objects.all()
     serializer_class = MonthlyViewsSerializer
+    pagination_class = ViewPagination
 
 class MonthlyViewsByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -156,6 +159,7 @@ class ViewSessionListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = ViewSession.objects.all()
     serializer_class = ViewSessionSerializer
+    pagination_class = ViewPagination
 
 class ViewSessionByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -167,8 +171,9 @@ class ViewSessionByVideoView(generics.ListAPIView):
     
 class QuestionStatsListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = QuestionStats.objects.all().order_by('-created_at')
+    queryset = QuestionStats.objects.all().order_by('-total_answered')
     serializer_class = QuestionStatsSerializer
+    pagination_class = ViewPagination
 
 class QuestionStatsByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -180,8 +185,9 @@ class QuestionStatsByVideoView(generics.ListAPIView):
     
 class QuestionAnswerListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = QuestionAnswer.objects.all().order_by('-id')
+    queryset = QuestionAnswer.objects.all().order_by('-answered_count')
     serializer_class = QuestionAnswerSerializer
+    pagination_class = ViewPagination
 
 class QuestionAnswersByQuestionView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -195,6 +201,7 @@ class VideoRatingListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = VideoRating.objects.all()
     serializer_class = VideoRatingSerializer
+    pagination_class = ViewPagination
 
 class VideoRatingByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]

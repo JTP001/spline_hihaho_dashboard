@@ -198,7 +198,7 @@ function Summary() {
     useEffect(() => {
         axiosInstance.get("videos/interactions/")
             .then(res => {
-                const interactionsData = res.data.map(interaction => ({
+                const interactionsData = res.data.results.map(interaction => ({
                     ...interaction,
                     created_at: dayjs(interaction.created_at)
                 }));
@@ -208,7 +208,7 @@ function Summary() {
 
         axiosInstance.get("videos/questions/")
             .then(res => {
-                const questionsData = res.data.map(question => ({
+                const questionsData = res.data.results.map(question => ({
                     ...question,
                     title:(question.title.slice(0, 18) === "<!--TINYMCE-->\n<p>") ? 
                         question.title.slice(18, -4) : 
@@ -750,7 +750,7 @@ function Summary() {
                                 <h4 className="text-center mt-4">Loading interaction data...</h4>
                             } {allInteractions?.length > 0 && interactionsPerTypeChart === "Pie" &&
                                 <div className="d-flex flex-column justify-content-center">
-                                    <p className="text-center">Total amount of interactions by type over all videos</p>
+                                    <p className="text-center">Total amount of interactions by type over a sample of 100 interactions</p>
                                     <PieChart
                                         colors={piePallette}
                                         series={[{
@@ -767,7 +767,7 @@ function Summary() {
                                 <BarChart 
                                     xAxis={[{label:"Interaction type", data: itypeCountBarChartData.map(grouping => grouping.type)}]}
                                     yAxis={[{label:"Total interactions", width:60}]}
-                                    series={[{label:"Total amount of interactions by type over all videos", data: itypeCountBarChartData.map(grouping => grouping.total_interactions), color:"#0dcaef"}]}
+                                    series={[{label:"Total amount of interactions by type over a sample of 1000 interactions", data: itypeCountBarChartData.map(grouping => grouping.total_interactions), color:"#0dcaef"}]}
                                     width={900}
                                     height={400}
                                     slotProps={{
@@ -846,7 +846,7 @@ function Summary() {
                                 <h4 className="text-center mt-4">Loading question data...</h4>
                             } {allQuestions?.length > 0 && questionsPerTypeChart === "Pie" &&
                                 <div className="d-flex flex-column justify-content-center">
-                                    <p className="text-center">Total amount of questions by type over all videos</p>
+                                    <p className="text-center">Total amount of questions by type over a sample of 1000 questions</p>
                                     <PieChart
                                         colors={piePallette}
                                         series={[{
@@ -863,7 +863,7 @@ function Summary() {
                                 <BarChart 
                                     xAxis={[{label:"Question type", data: qtypeCountBarChartData.map(grouping => grouping.type)}]}
                                     yAxis={[{label:"Total questions", width:60}]}
-                                    series={[{label:"Total amount of questions by type over all videos", data: qtypeCountBarChartData.map(grouping => grouping.total_questions), color:"#0dcaef"}]}
+                                    series={[{label:"Total amount of questions by type over a sample of 1000 questions", data: qtypeCountBarChartData.map(grouping => grouping.total_questions), color:"#0dcaef"}]}
                                     width={900}
                                     height={400}
                                     slotProps={{
