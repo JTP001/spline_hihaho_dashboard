@@ -226,7 +226,6 @@ class VideoRatingListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = VideoRating.objects.all()
     serializer_class = VideoRatingSerializer
-    pagination_class = ViewPagination
 
 class VideoRatingByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]

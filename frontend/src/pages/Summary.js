@@ -94,7 +94,7 @@ function Summary() {
         checkLoggedIn();
     }, []);
     
-    //------------------------------------Get videos------------------------------------//
+    //------------------------------------Get video ratings------------------------------------//
     useEffect(() => {
         if (!user) return;
 
@@ -160,7 +160,7 @@ function Summary() {
                     aggregated_stats.finished_views += videoStat.finished_views;
                     aggregated_stats.interaction_clicks += videoStat.interaction_clicks;
 
-                    uniqueFolders.add(videoStat.video.folder_number)
+                    uniqueFolders.add(`${videoStat.video.folder_name} (${videoStat.video.folder_number})`)
                 });
 
                 setFolderFilterMenuOptions([...uniqueFolders])
@@ -187,7 +187,7 @@ function Summary() {
                 videoStat.video.created_date.isSameOrAfter(startDate.startOf("day")) && 
                 videoStat.video.created_date.isSameOrBefore(endDate.endOf("day"));
 
-            const matchesFolders = !folderFilters.includes(videoStat.video.folder_number)
+            const matchesFolders = !folderFilters.includes(`${videoStat.video.folder_name} (${videoStat.video.folder_number})`)
             const matchesStatus = statusFilters.includes(videoStat.video.status);
 
             return matchesSearch && matchesDate && matchesFolders && matchesStatus;
