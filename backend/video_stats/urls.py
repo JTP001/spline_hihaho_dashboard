@@ -12,6 +12,7 @@ urlpatterns = [
     path('<int:video_id>/monthly_views/', MonthlyViewsByVideoView.as_view(), name='video_monthly_views'),
     path('export/monthly_views/<str:month>/', ViewsByMonthFilteredExportView.as_view(), name='export_by_month'),
     path('export/monthly_views/<str:month>/all/', ViewsByMonthAllExportView.as_view(), name='export_by_month_all'),
+    path('monthly_views/past_two_months/', PastTwoMonthsPerformanceView.as_view(), name='past_two_months_performance'),
     path('view_sessions/', ViewSessionListView.as_view(), name='view_sessions_all'),
     path('<int:video_id>/view_sessions/', ViewSessionByVideoView.as_view(), name='video_view_sessions'),
     path('questions/', QuestionStatsListView.as_view(), name='questions_all'),

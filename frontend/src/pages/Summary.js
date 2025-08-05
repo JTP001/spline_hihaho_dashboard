@@ -13,6 +13,9 @@ import SsidChartIcon from '@mui/icons-material/SsidChart';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import SlideshowIcon from '@mui/icons-material/Slideshow';
 import { Paper, InputBase, Tooltip } from '@mui/material';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
 import SearchIcon from '@mui/icons-material/Search';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { BarChart, PieChart } from '@mui/x-charts';
@@ -35,6 +38,7 @@ function Summary() {
     const [videoRatings, setVideoRatings] = useState([]);
     const [allInteractions, setAllInteractions] = useState([]);
     const [allQuestions, setAllQuestions] = useState([]);
+    const [allPastTwoMonths, setAllPastTwoMonths] = useState({});
     const [dataView, setDataView] = useState("Summary table");
     const [interactionsPerTypeChart, setInteractionsPerTypeChart] = useState("Bar");
     const [questionsPerTypeChart, setQuestionsPerTypeChart] = useState("Bar");
@@ -106,22 +110,38 @@ function Summary() {
     useEffect(() => {
         axiosInstance.get("videos/stats/")
             .then(res => {
-                const videoStatsData = res.data.map(videoStat => ({ // Section that adds view_rate for table
-                    ...videoStat,
-                    video: { // Set the nested field created_date to a dayjs object
-                        ...videoStat.video,
-                        created_date: dayjs(videoStat.video.created_date),
-                    },
-                    average_rating:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.average_rating || -1,
-                    one_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.one_star || 0,
-                    two_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.two_star || 0,
-                    three_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.three_star || 0,
-                    four_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.four_star || 0,
-                    five_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.five_star || 0,
-                    view_rate: videoStat.total_views > 0
-                        ? Math.round((videoStat.started_views / videoStat.total_views) * 100)
-                        : 0 // Makes sure that there's no divide by 0 error
-                }));
+                const videoStatsData = res.data.map(videoStat => {
+                    const video_id = videoStat.video.video_id;
+                    const viewHistory = allPastTwoMonths[String(video_id)] || [0, 0];
+                    const [lastMonthViews, twoMonthsAgoViews] = viewHistory;
+
+                    let viewChangePercent = 0;
+                    if (twoMonthsAgoViews === 0 && lastMonthViews > 0) {
+                        viewChangePercent = 100; // Video was created last month
+                    } else if (twoMonthsAgoViews === 0 && lastMonthViews === 0) {
+                        viewChangePercent = 0; // Video was created this month (no past two month data)
+                    } else {
+                        viewChangePercent = ((lastMonthViews - twoMonthsAgoViews) / twoMonthsAgoViews) * 100;
+                    }
+
+                    return {
+                        ...videoStat,
+                        video: {
+                            ...videoStat.video,
+                            created_date: dayjs(videoStat.video.created_date),
+                        },
+                        average_rating: videoRatings.find(r => r.video.video_id === video_id)?.average_rating || -1,
+                        one_star: videoRatings.find(r => r.video.video_id === video_id)?.one_star || 0,
+                        two_star: videoRatings.find(r => r.video.video_id === video_id)?.two_star || 0,
+                        three_star: videoRatings.find(r => r.video.video_id === video_id)?.three_star || 0,
+                        four_star: videoRatings.find(r => r.video.video_id === video_id)?.four_star || 0,
+                        five_star: videoRatings.find(r => r.video.video_id === video_id)?.five_star || 0,
+                        view_change_percent: Math.round(viewChangePercent * 100) / 100,
+                        view_rate: videoStat.total_views > 0
+                            ? Math.round((videoStat.started_views / videoStat.total_views) * 100)
+                            : 0
+                    };
+                });
 
                 setVideoStats(videoStatsData);
 
@@ -147,7 +167,7 @@ function Summary() {
                 setAggrStats(aggregated_stats);
             })
             .catch(err => console.error(err));
-    }, [videoRatings]);
+    }, [videoRatings, allPastTwoMonths]);
     
     //----------------------------------Handle filtering----------------------------------//
     const filteredStats = useMemo(() => {
@@ -223,6 +243,15 @@ function Summary() {
             })
             .catch(err => console.error(err));
     }, []);
+
+    //-------------------------Get all past two month data-------------------------//
+    useEffect(() => {
+        axiosInstance.get("videos/monthly_views/past_two_months/")
+            .then(res => {
+                setAllPastTwoMonths(res.data);
+            })
+            .catch(err => console.error(err));
+    }, [])
 
     //----------------------Handle filter from other page navigation----------------------//
     useEffect(() => {
@@ -567,6 +596,17 @@ function Summary() {
                                                     Access Status
                                                 </Tooltip>
                                             </TableCell>
+                                            <TableCell align="center">
+                                                <TableSortLabel 
+                                                    active={orderBy === "view_change_percent"}
+                                                    direction={orderBy === "view_change_percent" ? order : "desc"}
+                                                    onClick={() => handleTableSort("view_change_percent")}
+                                                >
+                                                    <Tooltip arrow title={<div className="text-center">View performance is calculated as the percent change between the total views of the last two months</div>} placement="top">
+                                                        View Performance
+                                                    </Tooltip>
+                                                </TableSortLabel> 
+                                            </TableCell>
                                             <TableCell align="center">Hihaho Folder</TableCell>
                                             <TableCell align="center">Hihaho Links</TableCell>
                                             <TableCell align="center">Details</TableCell>
@@ -633,6 +673,18 @@ function Summary() {
                                                     </TableCell>
                                                 }
                                                 <TableCell className="border" align="right">{videoStat.video.status}</TableCell>
+                                                <TableCell className="border" align="center">
+                                                    <div className="d-flex flex-column">
+                                                        <div className="my-2">
+                                                            {videoStat.view_change_percent === 0 ? <TrendingFlatIcon/> : 
+                                                            videoStat.view_change_percent > 0 ? <TrendingUpIcon className="text-success"/> : 
+                                                            <TrendingDownIcon className="text-danger"/>}
+                                                        </div>
+                                                        <div className="my-2">
+                                                            {videoStat.view_change_percent > 0 && "+"}{videoStat.view_change_percent}%
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell className="border" align="center">
                                                     {videoStat.video.folder_name} ({videoStat.video.folder_number})
                                                 </TableCell>

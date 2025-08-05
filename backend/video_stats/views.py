@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .pagination import ViewPagination
 from django.http import HttpResponse, JsonResponse
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from calendar import monthrange
 from .models import Video
 from .serializers import *
@@ -154,6 +155,30 @@ class ViewsByMonthAllExportView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class PastTwoMonthsPerformanceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        today = datetime.today()
+        last_month = (today.replace(day=1) - relativedelta(months=1)).strftime('%Y-%m')
+        two_months_ago = (today.replace(day=1) - relativedelta(months=2)).strftime('%Y-%m')
+
+        dict = {}
+        videos = Video.objects.all()
+
+        for video in videos:
+            video_id = str(video.video_id)
+
+            views_last_month = MonthlyViews.objects.filter(video=video, month=last_month).first()
+            views_two_months_ago = MonthlyViews.objects.filter(video=video, month=two_months_ago).first()
+
+            count_last_month = views_last_month.total_views if views_last_month else 0
+            count_two_months_ago = views_two_months_ago.total_views if views_two_months_ago else 0
+
+            dict[video_id] = [count_last_month, count_two_months_ago]
+
+        return Response(dict)
     
 class ViewSessionListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
