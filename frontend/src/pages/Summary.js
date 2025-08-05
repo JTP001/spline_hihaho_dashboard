@@ -43,6 +43,10 @@ function Summary() {
     const [orderBy, setOrderBy] = useState("video.title");
     const [order, setOrder] = useState("asc");
     const [searchQuery, setSearchQuery] = useState("");
+    const [folderFilters, setFolderFilters] = useState([]);
+    const [folderFilterMenuOptions, setFolderFilterMenuOptions] = useState([])
+    const [anchorFolderFilterMenu, setAnchorFolderFilterMenu] = useState(null); // Anchors the place the filter menu appears in the DOM
+    const folderFilterMenuOpen = Boolean(anchorFolderFilterMenu); // Filter menu is open when it is not null
     const [statusFilters, setStatusFilters] = useState([0, 1, 2, 3, 4]);
     const [anchorFilterMenu, setAnchorFilterMenu] = useState(null); // Anchors the place the filter menu appears in the DOM
     const filterMenuOpen = Boolean(anchorFilterMenu); // Filter menu is open when it is not null
@@ -102,20 +106,20 @@ function Summary() {
     useEffect(() => {
         axiosInstance.get("videos/stats/")
             .then(res => {
-                const videoStatsData = res.data.map(video => ({ // Section that adds view_rate for table
-                    ...video,
+                const videoStatsData = res.data.map(videoStat => ({ // Section that adds view_rate for table
+                    ...videoStat,
                     video: { // Set the nested field created_date to a dayjs object
-                        ...video.video,
-                        created_date: dayjs(video.video.created_date),
+                        ...videoStat.video,
+                        created_date: dayjs(videoStat.video.created_date),
                     },
-                    average_rating:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.average_rating || -1,
-                    one_star:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.one_star || 0,
-                    two_star:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.two_star || 0,
-                    three_star:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.three_star || 0,
-                    four_star:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.four_star || 0,
-                    five_star:videoRatings.find(rating => rating.video.video_id === video.video.video_id)?.five_star || 0,
-                    view_rate: video.total_views > 0
-                        ? Math.round((video.started_views / video.total_views) * 100)
+                    average_rating:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.average_rating || -1,
+                    one_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.one_star || 0,
+                    two_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.two_star || 0,
+                    three_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.three_star || 0,
+                    four_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.four_star || 0,
+                    five_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.five_star || 0,
+                    view_rate: videoStat.total_views > 0
+                        ? Math.round((videoStat.started_views / videoStat.total_views) * 100)
                         : 0 // Makes sure that there's no divide by 0 error
                 }));
 
@@ -129,13 +133,17 @@ function Summary() {
                     interaction_clicks: 0
                 };
 
-                videoStatsData.forEach(video => {
-                    aggregated_stats.total_views += video.total_views;
-                    aggregated_stats.started_views += video.started_views;
-                    aggregated_stats.finished_views += video.finished_views;
-                    aggregated_stats.interaction_clicks += video.interaction_clicks;
+                const uniqueFolders = new Set();
+                videoStatsData.forEach(videoStat => {
+                    aggregated_stats.total_views += videoStat.total_views;
+                    aggregated_stats.started_views += videoStat.started_views;
+                    aggregated_stats.finished_views += videoStat.finished_views;
+                    aggregated_stats.interaction_clicks += videoStat.interaction_clicks;
+
+                    uniqueFolders.add(videoStat.video.folder_number)
                 });
 
+                setFolderFilterMenuOptions([...uniqueFolders])
                 setAggrStats(aggregated_stats);
             })
             .catch(err => console.error(err));
@@ -147,23 +155,24 @@ function Summary() {
             term.replace(/"/g, "").toLowerCase()
         ) || []; // Creates a list of search terms from the query of all words or strings in quotes split by spaces
 
-        return videoStats.filter((video) => {
-            const id = video.video.video_id.toString();
-            const title = video.video.title.toLowerCase();
+        return videoStats.filter((videoStat) => {
+            const id = videoStat.video.video_id.toString();
+            const title = videoStat.video.title.toLowerCase();
 
             const matchesSearch = searchTerms.length === 0 || searchTerms.some(term => 
                 title.includes(term) || id.includes(term)
             );
 
             const matchesDate = 
-                video.video.created_date.isSameOrAfter(startDate.startOf("day")) && 
-                video.video.created_date.isSameOrBefore(endDate.endOf("day"));
+                videoStat.video.created_date.isSameOrAfter(startDate.startOf("day")) && 
+                videoStat.video.created_date.isSameOrBefore(endDate.endOf("day"));
 
-            const matchesStatus = statusFilters.includes(video.video.status);
+            const matchesFolders = !folderFilters.includes(videoStat.video.folder_number)
+            const matchesStatus = statusFilters.includes(videoStat.video.status);
 
-            return matchesSearch && matchesDate && matchesStatus;
+            return matchesSearch && matchesDate && matchesFolders && matchesStatus;
         });
-    }, [videoStats, searchQuery, startDate, endDate, statusFilters]);
+    }, [videoStats, searchQuery, startDate, endDate, folderFilters, statusFilters]);
 
     //------------------------------Filter aggregated stats------------------------------//
     useEffect(() => {
@@ -175,11 +184,11 @@ function Summary() {
             interaction_clicks: 0
         };
 
-        filteredStats.forEach(video => {
-            aggregated_stats.total_views += (video.total_views ?? 0);
-            aggregated_stats.started_views += (video.started_views ?? 0);
-            aggregated_stats.finished_views += (video.finished_views ?? 0);
-            aggregated_stats.interaction_clicks += (video.interaction_clicks ?? 0);
+        filteredStats.forEach(videoStat => {
+            aggregated_stats.total_views += (videoStat.total_views ?? 0);
+            aggregated_stats.started_views += (videoStat.started_views ?? 0);
+            aggregated_stats.finished_views += (videoStat.finished_views ?? 0);
+            aggregated_stats.interaction_clicks += (videoStat.interaction_clicks ?? 0);
         });
 
         setFilteredAggrStats(aggregated_stats);
@@ -311,6 +320,14 @@ function Summary() {
     };
 
     //---------------------------------Handle table filter---------------------------------//
+    const handleFolderFilterToggle = (value) => {
+        setFolderFilters((prev) => 
+            prev.includes(value) 
+                ? prev.filter((val) => val !== value) // Removes value from filters list if it was in it
+                : [...prev, value] // Adds value to filters list if it was not in it
+        );
+    }
+
     const handleStatusFilterToggle = (value) => {
         setStatusFilters((prev) => 
             prev.includes(value) 
@@ -430,6 +447,29 @@ function Summary() {
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
                                 </Paper>
+                                <Paper className="my-3 mx-2 d-flex justify-content-center rounded-5" elevation={2}>
+                                    <IconButton onClick={(e) => setAnchorFolderFilterMenu(anchorFolderFilterMenu ? null : e.currentTarget)}>
+                                        <FilterListIcon />
+                                    </IconButton>
+                                    <Menu anchorEl={anchorFolderFilterMenu} open={folderFilterMenuOpen} onClose={() => setAnchorFolderFilterMenu(null)}>
+                                        <MenuItem disabled>
+                                            <Typography variant="subtitle1">Folder Filter Options</Typography>
+                                        </MenuItem>
+                                        <Box px={2} className="d-flex flex-column" gap={1}>
+                                            {folderFilterMenuOptions.map((filterOption) => (
+                                                <FormControlLabel key={filterOption} 
+                                                    control={
+                                                        <Checkbox 
+                                                            checked={!folderFilters.includes(filterOption)} 
+                                                            onChange={() => handleFolderFilterToggle(filterOption)}
+                                                        />
+                                                    }
+                                                    label={`${filterOption}`}
+                                                />
+                                            ))}
+                                        </Box>
+                                    </Menu>
+                                </Paper>
                                 <Paper className="d-flex justify-content-center rounded-5" elevation={2}>
                                     <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
                                         <FilterListIcon />
@@ -527,6 +567,7 @@ function Summary() {
                                                     Access Status
                                                 </Tooltip>
                                             </TableCell>
+                                            <TableCell align="center">Hihaho Folder</TableCell>
                                             <TableCell align="center">Hihaho Links</TableCell>
                                             <TableCell align="center">Details</TableCell>
                                             <TableCell align="center">
@@ -593,6 +634,9 @@ function Summary() {
                                                 }
                                                 <TableCell className="border" align="right">{videoStat.video.status}</TableCell>
                                                 <TableCell className="border" align="center">
+                                                    {videoStat.video.folder_name} ({videoStat.video.folder_number})
+                                                </TableCell>
+                                                <TableCell className="border" align="center">
                                                     <Tooltip arrow title="Preview video" placement="right-end">
                                                         <Link to={`https://player.hihaho.com/${videoStat.video.uuid}`} target="_blank"><IconButton><VisibilityIcon/></IconButton></Link>
                                                     </Tooltip>
@@ -643,11 +687,34 @@ function Summary() {
                             </div>
                         } {dataView === "Interaction graphs" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                            <div className="d-flex flex-row justify-content-center flex-wrap align-items-center">
                                 <div className="my-3 d-flex flex-row justify-content-around">
-                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setInteractionsPerTypeChart("Pie")}>Pie Chart</button>
+                                    <button className="btn bg-info-subtle shadow-sm mx-2 p-3" onClick={() => setInteractionsPerTypeChart("Pie")}>Pie Chart</button>
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setInteractionsPerTypeChart("Bar")}>Bar Chart</button>
                                 </div>
+                                <Paper className="my-3 mx-2 d-flex justify-content-center rounded-5" elevation={2}>
+                                    <IconButton onClick={(e) => setAnchorFolderFilterMenu(anchorFolderFilterMenu ? null : e.currentTarget)}>
+                                        <FilterListIcon />
+                                    </IconButton>
+                                    <Menu anchorEl={anchorFolderFilterMenu} open={folderFilterMenuOpen} onClose={() => setAnchorFolderFilterMenu(null)}>
+                                        <MenuItem disabled>
+                                            <Typography variant="subtitle1">Folder Filter Options</Typography>
+                                        </MenuItem>
+                                        <Box px={2} className="d-flex flex-column" gap={1}>
+                                            {folderFilterMenuOptions.map((filterOption) => (
+                                                <FormControlLabel key={filterOption} 
+                                                    control={
+                                                        <Checkbox 
+                                                            checked={!folderFilters.includes(filterOption)} 
+                                                            onChange={() => handleFolderFilterToggle(filterOption)}
+                                                        />
+                                                    }
+                                                    label={`${filterOption}`}
+                                                />
+                                            ))}
+                                        </Box>
+                                    </Menu>
+                                </Paper>
                                 <Paper className="my-3 mx-2 d-flex justify-content-center rounded-5" elevation={2}>
                                     <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
                                         <FilterListIcon />
@@ -716,11 +783,34 @@ function Summary() {
                             </div>
                         } {dataView === "Question graphs" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                            <div className="d-flex flex-row justify-content-center flex-wrap align-items-center">
                                 <div className="my-3 d-flex flex-row justify-content-around">
-                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setQuestionsPerTypeChart("Pie")}>Pie Chart</button>
-                                    <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setQuestionsPerTypeChart("Bar")}>Bar Chart</button>
+                                    <button className="btn bg-info-subtle shadow-sm mx-2 p-3" onClick={() => setQuestionsPerTypeChart("Pie")}>Pie Chart</button>
+                                    <button className="btn bg-info-subtle shadow-sm mx-2 p-3" onClick={() => setQuestionsPerTypeChart("Bar")}>Bar Chart</button>
                                 </div>
+                                <Paper className="my-3 mx-2 d-flex justify-content-center rounded-5" elevation={2}>
+                                    <IconButton onClick={(e) => setAnchorFolderFilterMenu(anchorFolderFilterMenu ? null : e.currentTarget)}>
+                                        <FilterListIcon />
+                                    </IconButton>
+                                    <Menu anchorEl={anchorFolderFilterMenu} open={folderFilterMenuOpen} onClose={() => setAnchorFolderFilterMenu(null)}>
+                                        <MenuItem disabled>
+                                            <Typography variant="subtitle1">Folder Filter Options</Typography>
+                                        </MenuItem>
+                                        <Box px={2} className="d-flex flex-column" gap={1}>
+                                            {folderFilterMenuOptions.map((filterOption) => (
+                                                <FormControlLabel key={filterOption} 
+                                                    control={
+                                                        <Checkbox 
+                                                            checked={!folderFilters.includes(filterOption)} 
+                                                            onChange={() => handleFolderFilterToggle(filterOption)}
+                                                        />
+                                                    }
+                                                    label={`${filterOption}`}
+                                                />
+                                            ))}
+                                        </Box>
+                                    </Menu>
+                                </Paper>
                                 <Paper className="my-3 mx-2 d-flex justify-content-center rounded-5" elevation={2}>
                                     <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
                                         <FilterListIcon />

@@ -5,6 +5,8 @@ class Video(models.Model):
     uuid = models.CharField()
     title = models.CharField()
     status = models.IntegerField()
+    folder_name = models.CharField()
+    folder_number = models.IntegerField()
     created_date = models.DateTimeField()
 
     def __str__(self):
@@ -43,15 +45,15 @@ class MonthlyViews(models.Model):
     
 class ViewSession(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE)
-    session_id = models.IntegerField()
-    started_time_unix = models.IntegerField()
-    ended_time_unix = models.IntegerField()
-    viewer_timezone = models.CharField()
+    object_id = models.IntegerField()
     viewer_os = models.CharField()
+    os_version = models.CharField()
     viewer_browser = models.CharField()
+    browser_version = models.CharField()
+    viewer_device = models.CharField()
     viewer_mobile = models.BooleanField()
-    last_reached_seconds = models.IntegerField()
-    last_reached_percent = models.FloatField()
+    is_bot = models.BooleanField()
+    viewer_count = models.IntegerField()
 
 class QuestionStats(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE)

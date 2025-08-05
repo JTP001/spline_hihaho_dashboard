@@ -121,7 +121,7 @@ function Questions() {
                     percent_correct:question.total_answered > 0
                         ? Math.round((question.total_correctly_answered / question.total_answered) * 100)
                         : 0, // Makes sure that there's no divide by 0 error
-                    created_at:dayjs(question.created_at)
+                    created_at: question.created_at ? dayjs(question.created_at) : dayjs(0)
                 }));
                 setQuestions(questionData);
                 setPageNum(0);
@@ -553,7 +553,7 @@ function Questions() {
                                                 <TableCell className="border" align="right">
                                                     {!['open', 'essay', 'vacancy'].includes(question.type) ? `${question.percent_correct}%` : "N/A"}
                                                 </TableCell>
-                                                <TableCell className="border" align="center">{question.created_at.format("YYYY-MM-DD HH:mm")}</TableCell>
+                                                <TableCell className="border" align="center">{question.created_at !== dayjs(0) ? question.created_at.format("YYYY-MM-DD HH:mm") : "None"}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

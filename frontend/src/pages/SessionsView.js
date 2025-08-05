@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import Layout from "../components/Layout";
 import { Link } from "react-router-dom";
 import { useVideoFilter } from "../context/VideoFilterContext";
-import { BarChart, PieChart, LineChart } from '@mui/x-charts';
+import { BarChart, PieChart } from '@mui/x-charts';
 import { IconButton, Menu, MenuItem, Typography, Checkbox, FormControlLabel, Box, Paper, InputBase, Tooltip } from '@mui/material';
 import FilterListIcon from "@mui/icons-material/FilterList";
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
@@ -12,7 +12,6 @@ import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
-import CustomDatePicker from "../components/CustomDatePicker";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -26,20 +25,16 @@ function SessionsView() {
     const [browserBotFilter, setBrowserBotFilter] = useState([]);
     const [browserBotToggle, setBrowserBotToggle] = useState(true);
     const { videoFilter, setVideoFilter } = useVideoFilter();
-    const [bucketSize, setBucketSize] = useState(1);
-    const [bucketArray, setBucketArray] = useState([]);
     const [dataView, setDataView] = useState("Sessions by os");
     const [sessionByOsChart, setSessionByOsChart] = useState("Pie");
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [pageNum, setPageNum] = useState(0);
-    const [orderBy, setOrderBy] = useState("session_id");
+    const [orderBy, setOrderBy] = useState("viewer_count");
     const [order, setOrder] = useState("asc");
     const [searchQuery, setSearchQuery] = useState("");
     const [tableFilters, setTableFilters] = useState(["Desktop", "Mobile"]);
     const [anchorFilterMenu, setAnchorFilterMenu] = useState(null); // Anchors the place the filter menu appears in the DOM
     const filterMenuOpen = Boolean(anchorFilterMenu); // Filter menu is open when it is not null
-    const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
-    const [endDate, setEndDate] = useState(dayjs());
     const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon", "aquamarine", "bisque", "green", "purple", "orange", "brown", "darkcyan"];
 
     //----------------------------------Check logged in----------------------------------//
@@ -95,36 +90,8 @@ function SessionsView() {
 
         axiosInstance.get(`videos/${videoFilter}/view_sessions/`)
             .then(res => {
-                const sessionData = res.data.map(session => ({
-                    ...session,
-                    started_at: session.started_time_unix !== 0 ? dayjs.unix(session.started_time_unix) : null,
-                    ended_at: session.ended_time_unix !== 0 ? dayjs.unix(session.ended_time_unix) : null
-                }));
-                setSessions(sessionData);
+                setSessions(res.data);
                 setPageNum(0);
-
-                // Get the video duration and prepare the line chart data only after interactions is fetched
-                if (videoFilter) {
-                axiosInstance.get(`videos/${videoFilter}/stats/`)
-                    .then(res => {
-                        const bucketSizeSeconds = Math.max(1, Math.round((res.data[0].video_duration_seconds * 0.05)*100/100));
-                        const bucketItems = new Array(Math.ceil(res.data[0].video_duration_seconds / bucketSizeSeconds)).fill(0);
-
-                        sessionData.forEach(session => {
-                            const bucketIndex = Math.floor(session.last_reached_seconds / bucketSizeSeconds);
-                            if (bucketIndex >= 0 && bucketIndex < bucketItems.length) {
-                                bucketItems[bucketIndex] += 1;
-                            } else {
-                                console.error(
-                                    `Skipping session with last_reached_seconds ${session.last_reached_seconds}, `
-                                    + `bucketIndex ${bucketIndex}, video duration: ${res.data[0].video_duration_seconds}`
-                                );
-                            }
-                        });
-                        setBucketSize(bucketSizeSeconds)
-                        setBucketArray(bucketItems);
-                    })
-                }
             })
             .catch(err => console.error(err));
     }, [videoFilter]);
@@ -136,25 +103,20 @@ function SessionsView() {
         ) || []; // Creates a list of search terms from the query of all words or strings in quotes split by spaces
 
         return sessions.filter((session) => {
-            const id = session.session_id.toString();
             const viewer_os = session.viewer_os.toLowerCase();
             const viewer_browser = session.viewer_browser.toLowerCase();
 
             const matchesSearch = searchTerms.length === 0 || searchTerms.some(term => 
-                id.includes(term) || viewer_os.includes(term) || viewer_browser.includes(term)
+                viewer_os.includes(term) || viewer_browser.includes(term)
             );
 
-            const matchesDate = 
-                session.started_at.isSameOrAfter(startDate.startOf("day")) && 
-                session.started_at.isSameOrBefore(endDate.endOf("day"));
-                
             const matchesFilters = session.viewer_mobile ? 
                 tableFilters.includes("Mobile") : 
                 tableFilters.includes("Desktop")
 
-            return matchesSearch && matchesDate && matchesFilters;
+            return matchesSearch && matchesFilters;
         });
-    }, [sessions, searchQuery, startDate, endDate, tableFilters]);
+    }, [sessions, searchQuery, tableFilters]);
 
     //--------------------Create 'session by os' chart data--------------------//
     const sessionsByOs = filteredSessions.reduce((session_counts, session) => {
@@ -248,7 +210,7 @@ function SessionsView() {
     };
 
     const getTableComparator = (order, orderBy) => {
-        return order === "desc" 
+        return order === "asc" 
             ? (a, b) => descendingComparator(a, b, orderBy)
             : (a, b) => -descendingComparator(a, b, orderBy);
     };
@@ -266,12 +228,7 @@ function SessionsView() {
         setBrowserBotFilter(filteredSessions);
 
         if (browserBotToggle) {
-            const no_bots = filteredSessions.filter((session) => 
-                !session.viewer_browser.toLowerCase().includes("bot") && 
-                !session.viewer_browser.toLowerCase().includes("crawler") && 
-                !session.viewer_browser.toLowerCase().includes("proxy") &&
-                !session.viewer_browser.toLowerCase().includes("spider")
-            );
+            const no_bots = filteredSessions.filter((session) => !session.is_bot);
             setBrowserBotFilter(no_bots)
         }
     }, [filteredSessions, browserBotToggle]);
@@ -283,9 +240,9 @@ function SessionsView() {
                 <div className="container rounded min-vh-100">
                     <div className="mx-3 d-flex flex-column justify-content-center">
                         <div className="my-3 d-flex flex-row justify-content-center">
-                            <h1>Session View Details</h1>
+                            <h1>Session User Details</h1>
                         </div>
-                        <h3 className="mx-auto">Showing session data from: </h3>
+                        <h3 className="mx-auto">Showing session user data from: </h3>
                         <div className="my-2 d-flex flex-row flex-wrap justify-content-center align-items-center">
                             <Paper className="w-75" elevation={2}>
                                 <Select 
@@ -315,13 +272,12 @@ function SessionsView() {
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Sessions by os")}>Sessions by os</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Sessions by browser")}>Sessions by browser</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Device breakdown")}>Device breakdown</button>
-                            <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Dropoff point")}>Dropoff point</button>
                             <button className="btn bg-info-subtle shadow-sm" onClick={() => setDataView("Sessions table")}>Sessions table</button>
                         </div>
                         {dataView === "Sessions table" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-around flex-wrap align-items-center">
-                                <Paper elevation={2} component="form" className="p-2 w-50 d-flex align-items-center">
+                            <div className="mb-3 d-flex flex-row justify-content-center flex-wrap align-items-center">
+                                <Paper elevation={2} component="form" className="p-2 mx-3 w-50 d-flex align-items-center">
                                     <SearchIcon className="mx-2" />
                                     <InputBase 
                                         className="flex-grow-1"
@@ -361,83 +317,38 @@ function SessionsView() {
                                         </Box>
                                     </Menu>
                                 </Paper>
-                                <CustomDatePicker 
-                                    startDate={startDate} 
-                                    setStartDate={setStartDate} 
-                                    endDate={endDate} 
-                                    setEndDate={setEndDate} 
-                                    viewsList={['year', 'month', 'day']}
-                                />
                             </div>
                             <TableContainer component={Paper} elevation={3}>
                                 <Table aria-label="Sessions table">
                                     <TableHead>
                                         <TableRow className="bg-info-subtle">
-                                            <TableCell align="center">
-                                                <TableSortLabel 
-                                                    active={orderBy === "session_id"}
-                                                    direction={orderBy === "session_id" ? order : "asc"}
-                                                    onClick={() => handleTableSort("session_id")}
-                                                >
-                                                    Session ID
-                                                </TableSortLabel> 
-                                            </TableCell>
                                             <TableCell align="center">OS</TableCell>
                                             <TableCell align="center">Browser</TableCell>
+                                            <TableCell align="center">Desktop or Mobile</TableCell>
+                                            <TableCell align="center">Device Model</TableCell>
+                                            <TableCell align="center">User or Bot</TableCell>
                                             <TableCell align="center">
                                                 <TableSortLabel 
-                                                    active={orderBy === "last_reached_seconds"}
-                                                    direction={orderBy === "last_reached_seconds" ? order : "desc"}
-                                                    onClick={() => handleTableSort("last_reached_seconds")}
+                                                    active={orderBy === "viewer_count"}
+                                                    direction={orderBy === "viewer_count" ? order : "desc"}
+                                                    onClick={() => handleTableSort("viewer_count")}
                                                 >
-                                                    Last Reached Point
-                                                </TableSortLabel> 
+                                                    Number of Users
+                                                </TableSortLabel>
                                             </TableCell>
-                                            <TableCell align="center">Mobile</TableCell>
-                                            <TableCell align="center">
-                                                <TableSortLabel 
-                                                    active={orderBy === "started_time_unix"}
-                                                    direction={orderBy === "started_time_unix" ? order : "desc"}
-                                                    onClick={() => handleTableSort("started_time_unix")}
-                                                >
-                                                    Started
-                                                </TableSortLabel> 
-                                            </TableCell>
-                                            <TableCell align="center">
-                                                <TableSortLabel 
-                                                    active={orderBy === "ended_time_unix"}
-                                                    direction={orderBy === "ended_time_unix" ? order : "desc"}
-                                                    onClick={() => handleTableSort("ended_time_unix")}
-                                                >
-                                                    Ended
-                                                </TableSortLabel> 
-                                            </TableCell>
-                                            <TableCell align="center">Timezone</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
                                         {[...filteredSessions].sort(getTableComparator(order, orderBy))
                                             .slice(pageNum*rowsPerPage, pageNum*rowsPerPage + rowsPerPage)
-                                            .map((session) => (
-                                            <TableRow key={session.session_id}>
-                                                <TableCell className="border" align="center">
-                                                    <button className="btn" onClick={() => {
-                                                        if (searchQuery === "") {
-                                                            setSearchQuery(session.session_id.toString());
-                                                        } else {
-                                                            setSearchQuery(searchQuery + " " + session.session_id.toString())
-                                                        }
-                                                    }}>
-                                                        {session.session_id}
-                                                    </button>
-                                                </TableCell>
-                                                <TableCell className="border" align="center">{session.viewer_os}</TableCell>
-                                                <TableCell className="border" align="center">{session.viewer_browser}</TableCell>
-                                                <TableCell className="border" align="right">{session.last_reached_seconds?.toLocaleString()}s ({session.last_reached_percent}%)</TableCell>
-                                                <TableCell className="border" align="center">{session.viewer_mobile ? "Y" : "N"}</TableCell>
-                                                <TableCell className="border" align="center">{session.started_time_unix !== 0 ? session.started_at.format("YYYY-MM-DD") : "None"}</TableCell>
-                                                <TableCell className="border" align="center">{session.ended_time_unix !== 0 ? session.ended_at.format("YYYY-MM-DD") : "None"}</TableCell>
-                                                <TableCell className="border" align="center">{session.viewer_timezone || "None"}</TableCell>
+                                            .map((session, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell className="border" align="center">{session.viewer_os} {session.os_version}</TableCell>
+                                                <TableCell className="border" align="center">{session.viewer_browser} {session.browser_version}</TableCell>
+                                                <TableCell className="border" align="center">{session.viewer_mobile ? "Mobile" : "Desktop"}</TableCell>
+                                                <TableCell className="border" align="center">{session.viewer_device}</TableCell>
+                                                <TableCell className="border" align="center">{session.is_bot ? "Bot" : "User"}</TableCell>
+                                                <TableCell className="border" align="center">{session.viewer_count}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -467,13 +378,6 @@ function SessionsView() {
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setSessionByOsChart("Pie")}>Pie Chart</button>
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setSessionByOsChart("Bar")}>Bar Chart</button>
                                 </div>
-                                <CustomDatePicker
-                                    startDate={startDate} 
-                                    setStartDate={setStartDate} 
-                                    endDate={endDate} 
-                                    setEndDate={setEndDate} 
-                                    viewsList={['year', 'month', 'day']}
-                                />
                             </div>
                             {filteredSessions.length > 0 ? (
                                 <>
@@ -528,13 +432,6 @@ function SessionsView() {
                                     }
                                     label={"Exclude bots and scrapers"}
                                 />
-                                <CustomDatePicker 
-                                    startDate={startDate} 
-                                    setStartDate={setStartDate} 
-                                    endDate={endDate} 
-                                    setEndDate={setEndDate} 
-                                    viewsList={['year', 'month', 'day']}
-                                />
                             </div>
                             {filteredSessions.length > 0 ? (
                                 <BarChart 
@@ -564,15 +461,6 @@ function SessionsView() {
                             </div>
                         } {dataView === "Device breakdown" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center">
-                                <CustomDatePicker 
-                                    startDate={startDate} 
-                                    setStartDate={setStartDate} 
-                                    endDate={endDate} 
-                                    setEndDate={setEndDate} 
-                                    viewsList={['year', 'month', 'day']}
-                                />
-                            </div>
                             {filteredSessions.length > 0 ? (
                                 <div className="d-flex flex-column">
                                     <h6 className="text-center">Device Breakdown Pie Chart</h6>
@@ -597,23 +485,6 @@ function SessionsView() {
                                 </Paper>
                             )}
                             </div>
-                        } {dataView === "Dropoff point" &&
-                            <>
-                            {filteredSessions.length > 0 ? (
-                                <LineChart 
-                                    xAxis={[{data:bucketArray.map((_, i) => `${i * bucketSize}s`), scaleType:'point', label:'Video time (seconds)'}]}
-                                    series={[{data:bucketArray, label:"# of sessions that stopped at this time", showMark:false, area:true, color:"#0dcaef"}]}
-                                    height={400}
-                                />
-                            ) : (
-                                <div className="d-flex justify-content-center">
-                                    <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
-                                        <HighlightOffIcon className="mx-2"/>
-                                        <h5>No session data to display</h5>
-                                    </Paper>
-                                </div>
-                            )}
-                            </>
                         }
                         
                     </div>

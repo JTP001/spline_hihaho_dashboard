@@ -3,6 +3,7 @@ from video_stats.models import *
 from dateutil import parser
 from datetime import date
 from user_agents import parse
+import datetime
 import requests
 import warnings
 import os
@@ -55,35 +56,54 @@ class Command(BaseCommand):
                 break
 
         for v in videos:
-            video_id = v["id"]
+            video_id = v.get("id")
             title = v.get("display_name", "")
+            container = v.get("video_container")
+            container_name = ""
+            container_id = 0
+            if container:
+                container_name = container.get("name")
+                container_id = container.get("id")
 
             video_obj, _ = Video.objects.update_or_create(
                 video_id=video_id, # lookup field for updating
                 defaults={
-                    "uuid": v["uuid"],
+                    "uuid": v.get("uuid"),
                     "title": title,
-                    "status": v["status"],
-                    "created_date":parser.parse(v["created_at"]),
+                    "status": v.get("status"),
+                    "folder_name":container_name,
+                    "folder_number":container_id,
+                    "created_date":parser.parse(v.get("created_at")),
                 }
             )
             print(f"{video_id} {v.get("video_container_id")}")
-            
-            v_stats = get_data_safe(f"{BASE_URL}/video/{video_id}/aggregated-statistics")
+
             v_data = get_data_safe(f"{BASE_URL}/video/{video_id}")
-            if v_stats and v_data:
-                v_duration = v_data.get("duration")
+            v_duration = v_data.get("duration")
+            if v_data:
+                # Initialize VideoStats object even when no aggregated stats
                 VideoStats.objects.update_or_create(
                     video=video_obj,
                     defaults={
-                        "total_views":v_stats.get("aggregated_statistics").get("views") or 0,
-                        "started_views":v_stats.get("aggregated_statistics").get("started_views") or 0,
-                        "finished_views":v_stats.get("aggregated_statistics").get("finished_views") or 0,
-                        "interaction_clicks":v_stats.get("aggregated_statistics").get("interactions").get("total_clicks") or 0,
-                        "video_duration_seconds":round(v_duration/1000, 2),
+                        "total_views":0,
+                        "started_views":0,
+                        "finished_views":0,
+                        "interaction_clicks":0,
+                        "video_duration_seconds":round(v_duration/1000, 2) or 11.11,
                     }
                 )
+            
+            v_stats = get_data_safe(f"{BASE_URL}/video/{video_id}/aggregated-statistics")
+            if v_stats:
+                # If there are aggregated stats, update VideoStats object accordingly
+                videostats_obj = VideoStats.objects.get(video=video_obj)
+                videostats_obj.total_views = v_stats.get("aggregated_statistics").get("views") or 0
+                videostats_obj.started_views = v_stats.get("aggregated_statistics").get("started_views") or 0
+                videostats_obj.finished_views = v_stats.get("aggregated_statistics").get("finished_views") or 0
+                videostats_obj.interaction_clicks = v_stats.get("aggregated_statistics").get("interactions").get("total_clicks") or 0
+                videostats_obj.save()
 
+                # Initialize all interactions if there are aggregated stats so interactions with 0 clicks are included
                 for i in v_stats["aggregated_statistics"]["interactions"]["details"]:
                     InteractionStats.objects.update_or_create(
                         video=video_obj,
@@ -92,15 +112,16 @@ class Command(BaseCommand):
                             "title":i.get("title") or "",
                             "type":i.get("type") or "",
                             "action_type":i.get("action_type") or "",
-                            "start_time_seconds":i.get("start_time") or 0.0,
-                            "end_time_seconds":i.get("end_time") or 0.0,
-                            "duration_seconds":i.get("duration") or 0.0,
+                            "start_time_seconds":i.get("start_time_seconds") or 0.0,
+                            "end_time_seconds":i.get("end_time_seconds") or 0.0,
+                            "duration_seconds":i.get("duration_seconds") or 0.0,
                             "link":i.get("link") or "",
                             "total_clicks":i.get("total_clicks") or 0,
-                            "created_at":i["created_at"],
+                            "created_at":i.get("created_at") or datetime.datetime.fromtimestamp(0),
                         }
                     )
 
+                # Initialize all questions if there are aggregated stats so questions with 0 answers are included
                 for q in v_stats["aggregated_statistics"]["questions"]["details"]:
                     QuestionStats.objects.update_or_create(
                         video=video_obj,
@@ -109,16 +130,16 @@ class Command(BaseCommand):
                             "title":q.get("title") or "",
                             "type":q.get("type") or "",
                             "video_time_seconds":q.get("active_at") or 0.0,
-                            "average_answer_time_seconds":0.0, # Initialize to 0 then set later
-                            "total_answered":0,
-                            "total_correctly_answered":0,
-                            "created_at":q["created_at"],
+                            "average_answer_time_seconds":0.0,
+                            "total_answered":q.get("amount_answers") or 0,
+                            "total_correctly_answered":q.get("amount_correct_answers") or 0,
+                            "created_at":q.get("created_at") or datetime.datetime.fromtimestamp(0),
                         }
                     )
             
             # Start and end dates
             today = date.today()
-            raw_start = v["created_at"]
+            raw_start = v.get("created_at")
             start_date = raw_start.split("T")[0] + " 00:00:00"
             end_date = today.strftime("%Y-%m-%d") + " 23:59:59"
 
@@ -145,47 +166,80 @@ class Command(BaseCommand):
                         }
                     )
 
-            # v_sessions = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/metadata")
-            # if v_sessions:
-            #     for session in v_sessions:
-            #         session_id = session.get("id")
-            #         user_agent = parse(session.get("user_agent"))
+            index = 1
+            v_session = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/views-by-user-agent")
+            if v_session:
+                for agent_type, count in v_session.items():
+                    if (agent_type != "unknown"):
+                        user_agent = parse(agent_type)
 
-            #         session_details = get_data_safe(f"{BASE_URL}/video/{video_id}/session/{session_id}")
-            #         last_reached_seconds = 0
-            #         last_reached_percent = 0
-            #         if (session_details):
-            #             last_reached_seconds = session_details.get("last_reached_point_seconds")
-            #             last_reached_percent = session_details.get("last_reached_point_percentage")
+                        ViewSession.objects.update_or_create(
+                            video=video_obj,
+                            object_id=index,
+                            defaults={
+                                "viewer_os":user_agent.os.family or "",
+                                "os_version":user_agent.os.version_string or "",
+                                "viewer_browser":user_agent.browser.family or "",
+                                "browser_version":user_agent.browser.version_string or "",
+                                "viewer_device":user_agent.device.model or "N/A",
+                                "viewer_mobile":user_agent.is_mobile or False,
+                                "is_bot":user_agent.is_bot or False,
+                                "viewer_count":count or 0,
+                            }
+                        )
+                    index += 1
 
-            #         ViewSession.objects.update_or_create(
-            #             video=video_obj,
-            #             session_id=session_id,
-            #             defaults={
-            #                 "started_time_unix":session.get("started_at") or 0,
-            #                 "ended_time_unix":session.get("closed_at") or 0,
-            #                 "viewer_timezone":session.get("timezone") or "",
-            #                 "viewer_os":user_agent.os.family,
-            #                 "viewer_browser":user_agent.browser.family,
-            #                 "viewer_mobile":user_agent.is_mobile,
-            #                 "last_reached_seconds":last_reached_seconds,
-            #                 "last_reached_percent":last_reached_percent
-            #             }
-            #         )
+            interaction_list = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/interactions/")
+            if interaction_list:
+                for interaction in interaction_list:
+                    interaction_id = interaction.get("id")
+                    
+                    try:
+                        existing = InteractionStats.objects.get(interaction_id=interaction_id)
+                    except InteractionStats.DoesNotExist:
+                        existing = None
+
+                    # Update if exists or if not create each interaction
+                    InteractionStats.objects.update_or_create(
+                        video=video_obj,
+                        interaction_id=interaction_id,
+                        defaults={
+                            "title": interaction.get("title") or "",
+                            "type": existing.type if existing else "",
+                            "action_type": existing.action_type if existing else "",
+                            "start_time_seconds": interaction.get("start_time") or 0.0,
+                            "end_time_seconds": interaction.get("end_time") or 0.0,
+                            "duration_seconds": existing.duration_seconds if existing else 0.0,
+                            "link": interaction.get("link") or "",
+                            "total_clicks": interaction.get("total_times_clicked") or 0,
+                            "created_at": existing.created_at if existing else datetime.datetime.fromtimestamp(0),
+                        }
+                    )
             
             question_list = get_data_safe(f"{BASE_URL}/video/{video_id}/stats/questions/")
             if question_list:
                 for question in question_list:
+                    question_id = question.get("id")
+                    
                     try:
-                        question_obj = QuestionStats.objects.get(question_id=question.get("id"))
+                        existing = QuestionStats.objects.get(question_id=question_id)
                     except QuestionStats.DoesNotExist:
-                        # Skip this question if the object doesn't already exist cause here we just update
-                        continue
+                        existing = None
 
-                    question_obj.average_answer_time_seconds = question.get("average_answer_time_seconds") or 0.0
-                    question_obj.total_answered = question.get("total_given_answers") or 0
-                    question_obj.total_correctly_answered = question.get("total_correct_answers") or 0
-                    question_obj.save()
+                    # Update if exists or if not create each interaction
+                    question_obj, _ = QuestionStats.objects.update_or_create(
+                        video=video_obj,
+                        question_id=question_id,
+                        defaults={
+                            "title":question.get("question_text") or "",
+                            "type":question.get("question_type") or "",
+                            "video_time_seconds":question.get("video_time") or 0.0,
+                            "average_answer_time_seconds": question.get("average_answer_time_seconds") or 0.0,
+                            "total_answered": question.get("total_given_answers") or 0,
+                            "total_correctly_answered": question.get("total_correct_answers") or 0,
+                            "created_at": existing.created_at if existing else datetime.datetime.fromtimestamp(0),
+                        }
+                    )
                     
 
                     if question.get("question_type") in ['mc', 'mr', 'image']: # Only get answers for questions with finite answer possibilities
