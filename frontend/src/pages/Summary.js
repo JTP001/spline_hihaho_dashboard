@@ -634,6 +634,7 @@ function Summary() {
                                                         } else {
                                                             setSearchQuery(searchQuery + " " + videoStat.video.video_id.toString())
                                                         }
+                                                        setPageNum(0);
                                                     }}>
                                                         {videoStat.video.video_id}
                                                     </button>
@@ -645,6 +646,7 @@ function Summary() {
                                                         } else {
                                                             setSearchQuery(searchQuery + " \"" + videoStat.video.title + "\"")
                                                         }
+                                                        setPageNum(0);
                                                     }}>
                                                         {videoStat.video.title}
                                                     </button>
@@ -664,8 +666,14 @@ function Summary() {
                                                 {user?.benesse && 
                                                     <TableCell className="border" align="right">
                                                         {videoStat.average_rating !== -1 ? (
-                                                            <Tooltip arrow title={<>★☆☆☆☆: {videoStat.one_star} times<br/>★★☆☆☆: {videoStat.two_star} times<br/>★★★☆☆: {videoStat.three_star} times<br/>★★★★☆: {videoStat.four_star} times<br/>★★★★★: {videoStat.five_star} times<br/></>} placement="right">
-                                                                {Number(videoStat.average_rating).toFixed(2)}
+                                                            <Tooltip arrow title={<>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★★★</div>: {videoStat.one_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★★☆</div>: {videoStat.two_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★☆☆</div>: {videoStat.three_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★☆☆☆</div>: {videoStat.four_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★☆☆☆☆</div>: {videoStat.five_star}</div></>
+                                                                } placement="right">
+                                                                {Number(videoStat.average_rating).toFixed(1)} ({videoStat.one_star + videoStat.two_star + videoStat.three_star + videoStat.four_star + videoStat.five_star})
                                                             </Tooltip>
                                                         ) : (
                                                             "N/A"
