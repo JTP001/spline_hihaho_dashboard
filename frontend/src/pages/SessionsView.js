@@ -12,6 +12,7 @@ import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
+import TablePaginationWithJump from "../components/TablePaginationWithJump";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -363,6 +364,7 @@ function SessionsView() {
                                     onRowsPerPageChange={handleChangeRowsPerPage}
                                     showFirstButton
                                     showLastButton
+                                    ActionsComponent={TablePaginationWithJump}
                                     sx={{
                                         '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
                                         marginBottom: 0,

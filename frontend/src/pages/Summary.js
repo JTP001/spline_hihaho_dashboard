@@ -23,6 +23,7 @@ import { ThreeDots } from 'react-loading-icons';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
+import TablePaginationWithJump from "../components/TablePaginationWithJump";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -669,11 +670,11 @@ function Summary() {
                                                     <TableCell className="border" align="right">
                                                         {videoStat.average_rating !== -1 ? (
                                                             <Tooltip arrow title={<>
-                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★★★</div>: {videoStat.one_star}</div>
-                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★★☆</div>: {videoStat.two_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★★★</div>: {videoStat.five_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★★☆</div>: {videoStat.four_star}</div>
                                                                     <div className="d-flex flex-row"><div className="text-warning">★★★☆☆</div>: {videoStat.three_star}</div>
-                                                                    <div className="d-flex flex-row"><div className="text-warning">★★☆☆☆</div>: {videoStat.four_star}</div>
-                                                                    <div className="d-flex flex-row"><div className="text-warning">★☆☆☆☆</div>: {videoStat.five_star}</div></>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★☆☆☆</div>: {videoStat.two_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★☆☆☆☆</div>: {videoStat.one_star}</div></>
                                                                 } placement="right">
                                                                 {Number(videoStat.average_rating).toFixed(1)} ({videoStat.one_star + videoStat.two_star + videoStat.three_star + videoStat.four_star + videoStat.five_star})
                                                             </Tooltip>
@@ -739,6 +740,7 @@ function Summary() {
                                     onRowsPerPageChange={handleChangeRowsPerPage}
                                     showFirstButton
                                     showLastButton
+                                    ActionsComponent={TablePaginationWithJump}
                                     sx={{
                                         '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
                                         marginBottom: 0,
