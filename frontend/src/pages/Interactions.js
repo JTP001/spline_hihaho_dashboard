@@ -5,7 +5,7 @@ import { useVideoFilter } from "../context/VideoFilterContext";
 import { BarChart, LineChart, PieChart } from '@mui/x-charts';
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
-import { Paper, InputBase, IconButton, Tooltip } from '@mui/material';
+import { Paper, InputBase, IconButton, Tooltip, Box } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import SummarizeIcon from '@mui/icons-material/Summarize';
@@ -330,7 +330,7 @@ function Interactions() {
                                     <TableHead>
                                         <TableRow className="bg-info-subtle">
                                             <TableCell align="center">Interaction ID</TableCell>
-                                            <TableCell align="center">
+                                            <TableCell align="center" sx={{ width: 250, maxWidth: 250, minwidth: 250}}>
                                                 <TableSortLabel 
                                                     active={orderBy === "title"}
                                                     direction={orderBy === "title" ? order : "asc"}
@@ -406,15 +406,17 @@ function Interactions() {
                                                     </button>
                                                 </TableCell>
                                                 <TableCell className="border" align="center">
-                                                    <button className="btn" onClick={() => {
-                                                        if (searchQuery === "") {
-                                                            setSearchQuery("\"" + interaction.title + "\"");
-                                                        } else {
-                                                            setSearchQuery(searchQuery + " \"" + interaction.title + "\"")
-                                                        }
-                                                    }}>
-                                                        {interaction.title}
-                                                    </button>
+                                                    <Box sx={{width: 250, maxWidth: 250}}>
+                                                        <button className="btn" onClick={() => {
+                                                            if (searchQuery === "") {
+                                                                setSearchQuery("\"" + interaction.title + "\"");
+                                                            } else {
+                                                                setSearchQuery(searchQuery + " \"" + interaction.title + "\"")
+                                                            }
+                                                        }}>
+                                                            {interaction.title}
+                                                        </button>
+                                                    </Box>
                                                 </TableCell>
                                                 <TableCell className="border" align="center">{interaction.type}</TableCell>
                                                 <TableCell className="border" align="center">{interaction.action_type}</TableCell>
@@ -427,7 +429,7 @@ function Interactions() {
                                                 <TableCell className="border" align="right">
                                                     {(Math.round(interaction.duration_seconds * 100) / 100)?.toLocaleString()}s
                                                 </TableCell>
-                                                <TableCell className="border" align="center">{interaction.link ? <a href={interaction.link}>{interaction.link}</a> : "None"}</TableCell>
+                                                <TableCell className="border" align="center">{interaction.link ? <a href={interaction.link}>Link</a> : "None"}</TableCell>
                                                 <TableCell className="border" align="right">
                                                     {interaction.total_clicks?.toLocaleString()}
                                                 </TableCell>

@@ -535,7 +535,7 @@ function Summary() {
                                     <TableHead className="bg-info-subtle">
                                         <TableRow>
                                             <TableCell align="center">Video ID</TableCell>
-                                            <TableCell align="center">
+                                            <TableCell align="center" sx={{ width: 250, maxWidth: 250, minwidth: 250}}>
                                                 <TableSortLabel 
                                                     active={orderBy === "video.title"}
                                                     direction={orderBy === "video.title" ? order : "asc"}
@@ -640,16 +640,18 @@ function Summary() {
                                                     </button>
                                                 </TableCell>
                                                 <TableCell className="border" align="center">
-                                                    <button className="btn" onClick={() => {
-                                                        if (searchQuery === "") {
-                                                            setSearchQuery("\"" + videoStat.video.title + "\"");
-                                                        } else {
-                                                            setSearchQuery(searchQuery + " \"" + videoStat.video.title + "\"")
-                                                        }
-                                                        setPageNum(0);
-                                                    }}>
-                                                        {videoStat.video.title}
-                                                    </button>
+                                                    <Box sx={{width: 250, maxWidth: 250}}>
+                                                        <button className="btn" onClick={() => {
+                                                            if (searchQuery === "") {
+                                                                setSearchQuery("\"" + videoStat.video.title + "\"");
+                                                            } else {
+                                                                setSearchQuery(searchQuery + " \"" + videoStat.video.title + "\"")
+                                                            }
+                                                            setPageNum(0);
+                                                        }}>
+                                                            {videoStat.video.title}
+                                                        </button>
+                                                    </Box>
                                                 </TableCell>
                                                 <TableCell className="border" align="right">
                                                     {videoStat.total_views?.toLocaleString()}
