@@ -116,12 +116,13 @@ function MonthlyView() {
     );
     
     //--------------------Create 'views by month' line chart data--------------------//
-    const lineChartMonths = [...filteredMonthlyData].sort((a, b) => a.month < b.month).map(monthData => monthData.month.format('MMM YYYY'));
-    const lineChartStartedViews = filteredMonthlyData.map(monthData => monthData.started_views);
-    const lineChartFinishedViews = filteredMonthlyData.map(monthData => monthData.finished_views);
-    const lineChartPassedViews = filteredMonthlyData.map(monthData => monthData.passed_views);
-    const lineChartFailedViews = filteredMonthlyData.map(monthData => monthData.failed_views);
-    const lineChartUnfinishedViews = filteredMonthlyData.map(monthData => monthData.unfinished_views);
+    const sortedMonthlyData = [...filteredMonthlyData].sort((a, b) => a.month < b.month)
+    const lineChartMonths = sortedMonthlyData.map(monthData => monthData.month.format('MMM YYYY'));
+    const lineChartStartedViews = sortedMonthlyData.map(monthData => monthData.started_views);
+    const lineChartFinishedViews = sortedMonthlyData.map(monthData => monthData.finished_views);
+    const lineChartPassedViews = sortedMonthlyData.map(monthData => monthData.passed_views);
+    const lineChartFailedViews = sortedMonthlyData.map(monthData => monthData.failed_views);
+    const lineChartUnfinishedViews = sortedMonthlyData.map(monthData => monthData.unfinished_views);
 
     const toggleLineChartVisible = (line) => {
         setLineChartVisible(prev => ({

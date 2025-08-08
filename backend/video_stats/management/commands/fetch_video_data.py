@@ -246,14 +246,34 @@ class Command(BaseCommand):
                         answer_list = question.get("answers")
                         if answer_list:
                             for answer in answer_list:
-                                QuestionAnswer.objects.update_or_create(
-                                    question=question_obj,
-                                    label=answer.get("label"),
-                                    defaults={
-                                        "answered_count":answer.get("answered_count") or 0,
-                                        "is_correct_answer":answer.get("is_correct_answer")
-                                    }
-                                )
+                                label = answer.get("label")
+                                answered_count = answer.get("answered_count") or 0
+                                is_correct_answer = answer.get("is_correct_answer")
+
+                                try: # This section is needed because the Hihaho API sometimes duplicates the correct answer and has one with answered count 0
+                                    existing = QuestionAnswer.objects.get(question=question_obj, label=label)
+
+                                    if existing.answered_count > 0 and answered_count == 0:
+                                        continue  # Skip this duplicate with 0 count
+
+                                    # Otherwise, update the existing one if needed
+                                    QuestionAnswer.objects.update_or_create(
+                                        question=question_obj,
+                                        label=label,
+                                        defaults={
+                                            "answered_count":answered_count,
+                                            "is_correct_answer":is_correct_answer,
+                                        }
+                                    )
+                                except QuestionAnswer.DoesNotExist:
+                                    QuestionAnswer.objects.update_or_create(
+                                        question=question_obj,
+                                        label=label,
+                                        defaults={
+                                            "answered_count":answered_count,
+                                            "is_correct_answer":is_correct_answer,
+                                        }
+                                    )
 
             
             # This assumes there is at least 0 ratings and at most 1 rating per video, specifically for Benesse

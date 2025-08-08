@@ -233,10 +233,10 @@ function Questions() {
     }));
 
     //--------------------Create 'answers by questions' line chart data--------------------//
-    const lineChartQuestions = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
-        .map(question => `${question.title} (${question.video_time_seconds}s)`);
-    const lineChartAnswered = filteredQuestions.map(question => question.total_answered);
-    const lineChartCorrectlyAnswered = filteredQuestions.map(question => question.total_correctly_answered);
+    const lineChartDataSorted = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
+    const lineChartQuestions = lineChartDataSorted.map(question => `${question.title} (${question.video_time_seconds}s)`);
+    const lineChartAnswered = lineChartDataSorted.map(question => question.total_answered);
+    const lineChartCorrectlyAnswered = lineChartDataSorted.map(question => question.total_correctly_answered);
 
     const toggleLineChartVisible = (line) => {
         setLineChartVisible(prev => ({
@@ -247,13 +247,14 @@ function Questions() {
     
     //--------------------Create 'answered count by question' chart data--------------------//
     const answeredByQuestionBarData = answers.filter((answer) => answer.question.question_id === selectedQuestion)
-        .map((answer) => ({label:answer.label, value:answer.answered_count, color:answer.is_correct_answer ? "#0dcaef" : "tomato"}));
+        .map((answer) => ({label:answer.label, value:answer.answered_count, color:answer.is_correct_answer ? "#0dcaef" : "tomato"}))
+        .sort((a, b) => b.value - a.value);
 
-    const answeredByQuestionPieData = answeredByQuestionBarData.sort((a, b) => b.value - a.value)
-        .map((answer, index) => {
+    const answeredByQuestionPieData = answeredByQuestionBarData.map((answer, index) => {
             const question = questions.find(question => question.question_id === selectedQuestion);
             const percent = ((answer.value/question.total_answered) * 100).toFixed(1);
-            return {id:index, label:`"${answer.label}": ${percent}% (${answer.value})`, value:answer.value};
+            const label = answer.label.length > 30 ? answer.label.slice(0, 27) + "..." : answer.label
+            return {id:index, label:`"${label}": ${percent}% (${answer.value})`, value:answer.value, color:answer.color};
         });
 
     //----------------------Create 'questions by type' chart data----------------------//
@@ -721,7 +722,6 @@ function Questions() {
                                             arcLabel:(answer) => answer.label,
                                             arcLabelMinAngle:15
                                         }]}
-                                        colors={piePallette}
                                         width={800}
                                         height={400}
                                     />

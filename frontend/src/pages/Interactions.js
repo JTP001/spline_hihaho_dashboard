@@ -166,14 +166,14 @@ function Interactions() {
     const iTypeBarChartData = Object.entries(interactionClicksByType).map(([type, total_clicks]) => ({
         type,
         total_clicks,
-    })).sort((a, b) => b.total_clicks - a.total_clicks);;
+    })).sort((a, b) => b.total_clicks - a.total_clicks);
 
-    const iTypePiePercentData = iTypeBarChartData.reduce((sum, grouping) => sum += grouping.total_clicks, 1)
+    const iTypePiePercentData = iTypeBarChartData.reduce((sum, grouping) => sum += grouping.total_clicks, 1);
 
     const iTypePieChartData = iTypeBarChartData.map((grouping, index) => {
         const percent = ((grouping.total_clicks/iTypePiePercentData) * 100).toFixed(1);
         return {id:index, value:grouping.total_clicks, label:`${grouping.type}: ${percent}%`};
-    })
+    });
 
     //---------------------Create 'clicks by action type' chart data---------------------//
     const interactionClicksByActionType = filteredInteractions.reduce((clicks, interaction) => {
