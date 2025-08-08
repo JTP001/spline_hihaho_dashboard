@@ -8,8 +8,6 @@ function useAuthCheck() {
     useEffect(() => {
         const checkLoggedIn = async () => {
             setLoadingLogin(true);
-            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-            await delay(3000);
             try {
                 const token = localStorage.getItem("accessToken");
                 if (token) {
