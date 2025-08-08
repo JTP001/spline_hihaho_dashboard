@@ -12,6 +12,9 @@ import SummarizeIcon from '@mui/icons-material/Summarize';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
+import TablePaginationWithJump from "../components/TablePaginationWithJump";
+import useAuthCheck from "../components/useAuthHook";
+import LoadingOrLogin from "../components/LoadingOrLogin";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -19,7 +22,7 @@ dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
 function MonthlyView() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const { user, loadingLogin } = useAuthCheck();
     const [videos, setVideos] = useState([]);
     const [monthlyData, setMonthlyData] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
@@ -38,33 +41,6 @@ function MonthlyView() {
         failed: true,
         unfinished: true
     });
-
-    //----------------------------------Check logged in----------------------------------//
-    useEffect(() => {
-        const checkLoggedIn = async () => {
-            try {
-                const token = localStorage.getItem("accessToken");
-                if (token) {
-                    const config = {
-                        headers: {
-                            "Authorization": `Bearer ${token}`
-                        }
-                    }
-                    await axiosInstance.get("user/", config)
-                    .then((response) => {
-                        setIsLoggedIn(true);
-                    })
-                }
-                else {
-                    setIsLoggedIn(false);
-                }
-            }
-            catch (error) {
-                setIsLoggedIn(false);
-            }
-        };
-        checkLoggedIn();
-    }, []);
 
     //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
@@ -115,12 +91,13 @@ function MonthlyView() {
     );
     
     //--------------------Create 'views by month' line chart data--------------------//
-    const lineChartMonths = [...filteredMonthlyData].sort((a, b) => a.month < b.month).map(monthData => monthData.month.format('MMM YYYY'));
-    const lineChartStartedViews = filteredMonthlyData.map(monthData => monthData.started_views);
-    const lineChartFinishedViews = filteredMonthlyData.map(monthData => monthData.finished_views);
-    const lineChartPassedViews = filteredMonthlyData.map(monthData => monthData.passed_views);
-    const lineChartFailedViews = filteredMonthlyData.map(monthData => monthData.failed_views);
-    const lineChartUnfinishedViews = filteredMonthlyData.map(monthData => monthData.unfinished_views);
+    const sortedMonthlyData = [...filteredMonthlyData].sort((a, b) => a.month < b.month)
+    const lineChartMonths = sortedMonthlyData.map(monthData => monthData.month.format('MMM YYYY'));
+    const lineChartStartedViews = sortedMonthlyData.map(monthData => monthData.started_views);
+    const lineChartFinishedViews = sortedMonthlyData.map(monthData => monthData.finished_views);
+    const lineChartPassedViews = sortedMonthlyData.map(monthData => monthData.passed_views);
+    const lineChartFailedViews = sortedMonthlyData.map(monthData => monthData.failed_views);
+    const lineChartUnfinishedViews = sortedMonthlyData.map(monthData => monthData.unfinished_views);
 
     const toggleLineChartVisible = (line) => {
         setLineChartVisible(prev => ({
@@ -209,7 +186,7 @@ function MonthlyView() {
     //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
-            {isLoggedIn ? (
+            {user ? (
                 <div className="container min-vh-100">
                     <div className="mx-3 d-flex flex-column justify-content-center">
                         <div className="my-3 d-flex flex-row justify-content-center">
@@ -376,6 +353,7 @@ function MonthlyView() {
                                         onRowsPerPageChange={handleChangeRowsPerPage}
                                         showFirstButton
                                         showLastButton
+                                        ActionsComponent={TablePaginationWithJump}
                                         sx={{
                                             '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
                                             marginBottom: 0,
@@ -466,7 +444,7 @@ function MonthlyView() {
                     </div>
                 </div>
             ) : (
-                <p>You must be logged in to view this page.</p>
+                <LoadingOrLogin loadingLogin={loadingLogin} />
             )}
         </Layout>
     )

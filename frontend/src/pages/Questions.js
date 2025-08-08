@@ -15,6 +15,9 @@ import SummarizeIcon from '@mui/icons-material/Summarize';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
+import TablePaginationWithJump from "../components/TablePaginationWithJump";
+import useAuthCheck from "../components/useAuthHook";
+import LoadingOrLogin from "../components/LoadingOrLogin";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -22,7 +25,7 @@ dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
 function Questions() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const { user, loadingLogin } = useAuthCheck();
     const [videos, setVideos] = useState([]);
     const [questions, setQuestions] = useState([]);
     const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -58,33 +61,6 @@ function Questions() {
     const [correctPercentFilter, setCorrectPercentFilter] = useState("all");
     const [anchorCorrectPercentFilter, setAnchorCorrectPercentFilter] = useState(null);
     const correctPercentFilterOpen = Boolean(anchorCorrectPercentFilter);
-
-    //----------------------------------Check logged in----------------------------------//
-    useEffect(() => {
-        const checkLoggedIn = async () => {
-            try {
-                const token = localStorage.getItem("accessToken");
-                if (token) {
-                    const config = {
-                        headers: {
-                            "Authorization": `Bearer ${token}`
-                        }
-                    }
-                    await axiosInstance.get("user/", config)
-                    .then((response) => {
-                        setIsLoggedIn(true);
-                    })
-                }
-                else {
-                    setIsLoggedIn(false);
-                }
-            }
-            catch (error) {
-                setIsLoggedIn(false);
-            }
-        };
-        checkLoggedIn();
-    }, []);
 
     //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
@@ -232,10 +208,10 @@ function Questions() {
     }));
 
     //--------------------Create 'answers by questions' line chart data--------------------//
-    const lineChartQuestions = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
-        .map(question => `${question.title} (${question.video_time_seconds}s)`);
-    const lineChartAnswered = filteredQuestions.map(question => question.total_answered);
-    const lineChartCorrectlyAnswered = filteredQuestions.map(question => question.total_correctly_answered);
+    const lineChartDataSorted = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
+    const lineChartQuestions = lineChartDataSorted.map(question => `${question.title} (${question.video_time_seconds}s)`);
+    const lineChartAnswered = lineChartDataSorted.map(question => question.total_answered);
+    const lineChartCorrectlyAnswered = lineChartDataSorted.map(question => question.total_correctly_answered);
 
     const toggleLineChartVisible = (line) => {
         setLineChartVisible(prev => ({
@@ -246,13 +222,14 @@ function Questions() {
     
     //--------------------Create 'answered count by question' chart data--------------------//
     const answeredByQuestionBarData = answers.filter((answer) => answer.question.question_id === selectedQuestion)
-        .map((answer) => ({label:answer.label, value:answer.answered_count, color:answer.is_correct_answer ? "#0dcaef" : "tomato"}));
+        .map((answer) => ({label:answer.label, value:answer.answered_count, color:answer.is_correct_answer ? "#0dcaef" : "tomato"}))
+        .sort((a, b) => b.value - a.value);
 
-    const answeredByQuestionPieData = answeredByQuestionBarData.sort((a, b) => b.value - a.value)
-        .map((answer, index) => {
+    const answeredByQuestionPieData = answeredByQuestionBarData.map((answer, index) => {
             const question = questions.find(question => question.question_id === selectedQuestion);
             const percent = ((answer.value/question.total_answered) * 100).toFixed(1);
-            return {id:index, label:`"${answer.label}": ${percent}% (${answer.value})`, value:answer.value};
+            const label = answer.label.length > 30 ? answer.label.slice(0, 27) + "..." : answer.label
+            return {id:index, label:`"${label}": ${percent}% (${answer.value})`, value:answer.value, color:answer.color};
         });
 
     //----------------------Create 'questions by type' chart data----------------------//
@@ -302,7 +279,7 @@ function Questions() {
     //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
-            {isLoggedIn ? (
+            {user ? (
                 <div className="container rounded min-vh-100">
                     <div className="mx-3 d-flex flex-column justify-content-center">
                         <div className="my-3 d-flex flex-row justify-content-center">
@@ -568,6 +545,7 @@ function Questions() {
                                     onRowsPerPageChange={handleChangeRowsPerPage}
                                     showFirstButton
                                     showLastButton
+                                    ActionsComponent={TablePaginationWithJump}
                                     sx={{
                                         '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
                                         marginBottom: 0,
@@ -719,7 +697,6 @@ function Questions() {
                                             arcLabel:(answer) => answer.label,
                                             arcLabelMinAngle:15
                                         }]}
-                                        colors={piePallette}
                                         width={800}
                                         height={400}
                                     />
@@ -831,7 +808,7 @@ function Questions() {
                     </div>
                 </div>
             ) : (
-                <p>You must be logged in to view this page.</p>
+                <LoadingOrLogin loadingLogin={loadingLogin} />
             )}
         </Layout>
     )

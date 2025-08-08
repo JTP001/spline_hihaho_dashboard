@@ -5,13 +5,16 @@ import { useVideoFilter } from "../context/VideoFilterContext";
 import { BarChart, LineChart, PieChart } from '@mui/x-charts';
 import Select from 'react-select';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
-import { Paper, InputBase, IconButton, Tooltip } from '@mui/material';
+import { Paper, InputBase, IconButton, Tooltip, Box } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import SummarizeIcon from '@mui/icons-material/Summarize';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
+import TablePaginationWithJump from "../components/TablePaginationWithJump";
+import useAuthCheck from "../components/useAuthHook";
+import LoadingOrLogin from "../components/LoadingOrLogin";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -19,7 +22,7 @@ dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
 function Interactions() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const { user, loadingLogin } = useAuthCheck();
     const [videos, setVideos] = useState([]);
     const [interactions, setInteractions] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
@@ -38,33 +41,6 @@ function Interactions() {
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
     const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon", "aquamarine", "bisque", "green", "purple", "orange", "brown", "darkcyan"];
-
-    //----------------------------------Check logged in----------------------------------//
-    useEffect(() => {
-        const checkLoggedIn = async () => {
-            try {
-                const token = localStorage.getItem("accessToken");
-                if (token) {
-                    const config = {
-                        headers: {
-                            "Authorization": `Bearer ${token}`
-                        }
-                    }
-                    await axiosInstance.get("user/", config)
-                    .then((response) => {
-                        setIsLoggedIn(true);
-                    })
-                }
-                else {
-                    setIsLoggedIn(false);
-                }
-            }
-            catch (error) {
-                setIsLoggedIn(false);
-            }
-        };
-        checkLoggedIn();
-    }, []);
 
     //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
@@ -165,14 +141,14 @@ function Interactions() {
     const iTypeBarChartData = Object.entries(interactionClicksByType).map(([type, total_clicks]) => ({
         type,
         total_clicks,
-    })).sort((a, b) => b.total_clicks - a.total_clicks);;
+    })).sort((a, b) => b.total_clicks - a.total_clicks);
 
-    const iTypePiePercentData = iTypeBarChartData.reduce((sum, grouping) => sum += grouping.total_clicks, 1)
+    const iTypePiePercentData = iTypeBarChartData.reduce((sum, grouping) => sum += grouping.total_clicks, 1);
 
     const iTypePieChartData = iTypeBarChartData.map((grouping, index) => {
         const percent = ((grouping.total_clicks/iTypePiePercentData) * 100).toFixed(1);
         return {id:index, value:grouping.total_clicks, label:`${grouping.type}: ${percent}%`};
-    })
+    });
 
     //---------------------Create 'clicks by action type' chart data---------------------//
     const interactionClicksByActionType = filteredInteractions.reduce((clicks, interaction) => {
@@ -265,7 +241,7 @@ function Interactions() {
     //-------------------------------Rendered page elements-------------------------------//
     return (
         <Layout>
-            {isLoggedIn ? (
+            {user ? (
                 <div className="container rounded min-vh-100">
                     <div className="mx-3 d-flex flex-column justify-content-center">
                         <div className="my-3 d-flex flex-row justify-content-center">
@@ -330,7 +306,7 @@ function Interactions() {
                                     <TableHead>
                                         <TableRow className="bg-info-subtle">
                                             <TableCell align="center">Interaction ID</TableCell>
-                                            <TableCell align="center">
+                                            <TableCell align="center" sx={{ width: 250, maxWidth: 250, minwidth: 250}}>
                                                 <TableSortLabel 
                                                     active={orderBy === "title"}
                                                     direction={orderBy === "title" ? order : "asc"}
@@ -406,15 +382,17 @@ function Interactions() {
                                                     </button>
                                                 </TableCell>
                                                 <TableCell className="border" align="center">
-                                                    <button className="btn" onClick={() => {
-                                                        if (searchQuery === "") {
-                                                            setSearchQuery("\"" + interaction.title + "\"");
-                                                        } else {
-                                                            setSearchQuery(searchQuery + " \"" + interaction.title + "\"")
-                                                        }
-                                                    }}>
-                                                        {interaction.title}
-                                                    </button>
+                                                    <Box sx={{width: 250, maxWidth: 250}}>
+                                                        <button className="btn" onClick={() => {
+                                                            if (searchQuery === "") {
+                                                                setSearchQuery("\"" + interaction.title + "\"");
+                                                            } else {
+                                                                setSearchQuery(searchQuery + " \"" + interaction.title + "\"")
+                                                            }
+                                                        }}>
+                                                            {interaction.title}
+                                                        </button>
+                                                    </Box>
                                                 </TableCell>
                                                 <TableCell className="border" align="center">{interaction.type}</TableCell>
                                                 <TableCell className="border" align="center">{interaction.action_type}</TableCell>
@@ -427,7 +405,7 @@ function Interactions() {
                                                 <TableCell className="border" align="right">
                                                     {(Math.round(interaction.duration_seconds * 100) / 100)?.toLocaleString()}s
                                                 </TableCell>
-                                                <TableCell className="border" align="center">{interaction.link ? <a href={interaction.link}>{interaction.link}</a> : "None"}</TableCell>
+                                                <TableCell className="border" align="center">{interaction.link ? <a href={interaction.link}>Link</a> : "None"}</TableCell>
                                                 <TableCell className="border" align="right">
                                                     {interaction.total_clicks?.toLocaleString()}
                                                 </TableCell>
@@ -446,6 +424,7 @@ function Interactions() {
                                     onRowsPerPageChange={handleChangeRowsPerPage}
                                     showFirstButton
                                     showLastButton
+                                    ActionsComponent={TablePaginationWithJump}
                                     sx={{
                                         '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
                                         marginBottom: 0,
@@ -653,7 +632,7 @@ function Interactions() {
                     </div>
                 </div>
             ) : (
-                <p>You must be logged in to view this page.</p>
+                <LoadingOrLogin loadingLogin={loadingLogin} />
             )}
         </Layout>
     )

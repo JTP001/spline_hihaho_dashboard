@@ -2,8 +2,10 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from .pagination import ViewPagination
 from django.http import HttpResponse, JsonResponse
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from calendar import monthrange
 from .models import Video
 from .serializers import *
@@ -57,8 +59,9 @@ class VideoToJsonExportView(APIView):
 
 class InteractionStatsListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = InteractionStats.objects.all().order_by('-created_at')
+    queryset = InteractionStats.objects.all().order_by('-total_clicks')
     serializer_class = InteractionStatsSerializer
+    pagination_class = ViewPagination
 
 class InteractionStatsByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -72,6 +75,7 @@ class MonthlyViewsListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = MonthlyViews.objects.all()
     serializer_class = MonthlyViewsSerializer
+    pagination_class = ViewPagination
 
 class MonthlyViewsByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -151,11 +155,36 @@ class ViewsByMonthAllExportView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class PastTwoMonthsPerformanceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        today = datetime.today()
+        last_month = (today.replace(day=1) - relativedelta(months=1)).strftime('%Y-%m')
+        two_months_ago = (today.replace(day=1) - relativedelta(months=2)).strftime('%Y-%m')
+
+        dict = {}
+        videos = Video.objects.all()
+
+        for video in videos:
+            video_id = str(video.video_id)
+
+            views_last_month = MonthlyViews.objects.filter(video=video, month=last_month).first()
+            views_two_months_ago = MonthlyViews.objects.filter(video=video, month=two_months_ago).first()
+
+            count_last_month = views_last_month.total_views if views_last_month else 0
+            count_two_months_ago = views_two_months_ago.total_views if views_two_months_ago else 0
+
+            dict[video_id] = [count_last_month, count_two_months_ago]
+
+        return Response(dict)
     
 class ViewSessionListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = ViewSession.objects.all()
     serializer_class = ViewSessionSerializer
+    pagination_class = ViewPagination
 
 class ViewSessionByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -167,8 +196,9 @@ class ViewSessionByVideoView(generics.ListAPIView):
     
 class QuestionStatsListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = QuestionStats.objects.all().order_by('-created_at')
+    queryset = QuestionStats.objects.all().order_by('-total_answered')
     serializer_class = QuestionStatsSerializer
+    pagination_class = ViewPagination
 
 class QuestionStatsByVideoView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -180,8 +210,9 @@ class QuestionStatsByVideoView(generics.ListAPIView):
     
 class QuestionAnswerListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = QuestionAnswer.objects.all().order_by('-id')
+    queryset = QuestionAnswer.objects.all().order_by('-answered_count')
     serializer_class = QuestionAnswerSerializer
+    pagination_class = ViewPagination
 
 class QuestionAnswersByQuestionView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]

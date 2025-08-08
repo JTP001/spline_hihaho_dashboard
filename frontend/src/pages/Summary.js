@@ -13,6 +13,9 @@ import SsidChartIcon from '@mui/icons-material/SsidChart';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import SlideshowIcon from '@mui/icons-material/Slideshow';
 import { Paper, InputBase, Tooltip } from '@mui/material';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
 import SearchIcon from '@mui/icons-material/Search';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
 import { BarChart, PieChart } from '@mui/x-charts';
@@ -20,6 +23,9 @@ import { ThreeDots } from 'react-loading-icons';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
+import TablePaginationWithJump from "../components/TablePaginationWithJump";
+import useAuthCheck from "../components/useAuthHook";
+import LoadingOrLogin from "../components/LoadingOrLogin";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -27,7 +33,7 @@ dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
 function Summary() {
-    const [user, setUser] = useState(null);
+    const { user, loadingLogin } = useAuthCheck();
     const [videoStats, setVideoStats] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
     const [aggrStats, setAggrStats] = useState({});
@@ -35,6 +41,7 @@ function Summary() {
     const [videoRatings, setVideoRatings] = useState([]);
     const [allInteractions, setAllInteractions] = useState([]);
     const [allQuestions, setAllQuestions] = useState([]);
+    const [allPastTwoMonths, setAllPastTwoMonths] = useState({});
     const [dataView, setDataView] = useState("Summary table");
     const [interactionsPerTypeChart, setInteractionsPerTypeChart] = useState("Bar");
     const [questionsPerTypeChart, setQuestionsPerTypeChart] = useState("Bar");
@@ -62,35 +69,8 @@ function Summary() {
         "Anyone",
         "Only those specified"
     ]
-
-    //----------------------------------Check logged in----------------------------------//
-    useEffect(() => {
-        const checkLoggedIn = async () => {
-            try {
-                const token = localStorage.getItem("accessToken");
-                if (token) {
-                    const config = {
-                        headers: {
-                            "Authorization": `Bearer ${token}`
-                        }
-                    }
-                    await axiosInstance.get("user/", config)
-                    .then((response) => {
-                        setUser(response.data);
-                    })
-                }
-                else {
-                    setUser(null);
-                }
-            }
-            catch (error) {
-                setUser(null);
-            }
-        };
-        checkLoggedIn();
-    }, []);
     
-    //------------------------------------Get videos------------------------------------//
+    //------------------------------------Get video ratings------------------------------------//
     useEffect(() => {
         if (!user) return;
 
@@ -106,22 +86,38 @@ function Summary() {
     useEffect(() => {
         axiosInstance.get("videos/stats/")
             .then(res => {
-                const videoStatsData = res.data.map(videoStat => ({ // Section that adds view_rate for table
-                    ...videoStat,
-                    video: { // Set the nested field created_date to a dayjs object
-                        ...videoStat.video,
-                        created_date: dayjs(videoStat.video.created_date),
-                    },
-                    average_rating:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.average_rating || -1,
-                    one_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.one_star || 0,
-                    two_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.two_star || 0,
-                    three_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.three_star || 0,
-                    four_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.four_star || 0,
-                    five_star:videoRatings.find(rating => rating.video.video_id === videoStat.video.video_id)?.five_star || 0,
-                    view_rate: videoStat.total_views > 0
-                        ? Math.round((videoStat.started_views / videoStat.total_views) * 100)
-                        : 0 // Makes sure that there's no divide by 0 error
-                }));
+                const videoStatsData = res.data.map(videoStat => {
+                    const video_id = videoStat.video.video_id;
+                    const viewHistory = allPastTwoMonths[String(video_id)] || [0, 0];
+                    const [lastMonthViews, twoMonthsAgoViews] = viewHistory;
+
+                    let viewChangePercent = 0;
+                    if (twoMonthsAgoViews === 0 && lastMonthViews > 0) {
+                        viewChangePercent = 100; // Video was created last month
+                    } else if (twoMonthsAgoViews === 0 && lastMonthViews === 0) {
+                        viewChangePercent = 0; // Video was created this month (no past two month data)
+                    } else {
+                        viewChangePercent = ((lastMonthViews - twoMonthsAgoViews) / twoMonthsAgoViews) * 100;
+                    }
+
+                    return {
+                        ...videoStat,
+                        video: {
+                            ...videoStat.video,
+                            created_date: dayjs(videoStat.video.created_date),
+                        },
+                        average_rating: videoRatings.find(r => r.video.video_id === video_id)?.average_rating || -1,
+                        one_star: videoRatings.find(r => r.video.video_id === video_id)?.one_star || 0,
+                        two_star: videoRatings.find(r => r.video.video_id === video_id)?.two_star || 0,
+                        three_star: videoRatings.find(r => r.video.video_id === video_id)?.three_star || 0,
+                        four_star: videoRatings.find(r => r.video.video_id === video_id)?.four_star || 0,
+                        five_star: videoRatings.find(r => r.video.video_id === video_id)?.five_star || 0,
+                        view_change_percent: Math.round(viewChangePercent * 100) / 100,
+                        view_rate: videoStat.total_views > 0
+                            ? Math.round((videoStat.started_views / videoStat.total_views) * 100)
+                            : 0
+                    };
+                });
 
                 setVideoStats(videoStatsData);
 
@@ -140,14 +136,14 @@ function Summary() {
                     aggregated_stats.finished_views += videoStat.finished_views;
                     aggregated_stats.interaction_clicks += videoStat.interaction_clicks;
 
-                    uniqueFolders.add(videoStat.video.folder_number)
+                    uniqueFolders.add(`${videoStat.video.folder_name} (${videoStat.video.folder_number})`)
                 });
 
                 setFolderFilterMenuOptions([...uniqueFolders])
                 setAggrStats(aggregated_stats);
             })
             .catch(err => console.error(err));
-    }, [videoRatings]);
+    }, [videoRatings, allPastTwoMonths]);
     
     //----------------------------------Handle filtering----------------------------------//
     const filteredStats = useMemo(() => {
@@ -167,7 +163,7 @@ function Summary() {
                 videoStat.video.created_date.isSameOrAfter(startDate.startOf("day")) && 
                 videoStat.video.created_date.isSameOrBefore(endDate.endOf("day"));
 
-            const matchesFolders = !folderFilters.includes(videoStat.video.folder_number)
+            const matchesFolders = !folderFilters.includes(`${videoStat.video.folder_name} (${videoStat.video.folder_number})`)
             const matchesStatus = statusFilters.includes(videoStat.video.status);
 
             return matchesSearch && matchesDate && matchesFolders && matchesStatus;
@@ -198,7 +194,7 @@ function Summary() {
     useEffect(() => {
         axiosInstance.get("videos/interactions/")
             .then(res => {
-                const interactionsData = res.data.map(interaction => ({
+                const interactionsData = res.data.results.map(interaction => ({
                     ...interaction,
                     created_at: dayjs(interaction.created_at)
                 }));
@@ -208,7 +204,7 @@ function Summary() {
 
         axiosInstance.get("videos/questions/")
             .then(res => {
-                const questionsData = res.data.map(question => ({
+                const questionsData = res.data.results.map(question => ({
                     ...question,
                     title:(question.title.slice(0, 18) === "<!--TINYMCE-->\n<p>") ? 
                         question.title.slice(18, -4) : 
@@ -223,6 +219,15 @@ function Summary() {
             })
             .catch(err => console.error(err));
     }, []);
+
+    //-------------------------Get all past two month data-------------------------//
+    useEffect(() => {
+        axiosInstance.get("videos/monthly_views/past_two_months/")
+            .then(res => {
+                setAllPastTwoMonths(res.data);
+            })
+            .catch(err => console.error(err));
+    }, [])
 
     //----------------------Handle filter from other page navigation----------------------//
     useEffect(() => {
@@ -506,7 +511,7 @@ function Summary() {
                                     <TableHead className="bg-info-subtle">
                                         <TableRow>
                                             <TableCell align="center">Video ID</TableCell>
-                                            <TableCell align="center">
+                                            <TableCell align="center" sx={{ width: 250, maxWidth: 250, minwidth: 250}}>
                                                 <TableSortLabel 
                                                     active={orderBy === "video.title"}
                                                     direction={orderBy === "video.title" ? order : "asc"}
@@ -567,6 +572,17 @@ function Summary() {
                                                     Access Status
                                                 </Tooltip>
                                             </TableCell>
+                                            <TableCell align="center">
+                                                <TableSortLabel 
+                                                    active={orderBy === "view_change_percent"}
+                                                    direction={orderBy === "view_change_percent" ? order : "desc"}
+                                                    onClick={() => handleTableSort("view_change_percent")}
+                                                >
+                                                    <Tooltip arrow title={<div className="text-center">View performance is calculated as the percent change between the total views of the last two months</div>} placement="top">
+                                                        View Performance
+                                                    </Tooltip>
+                                                </TableSortLabel> 
+                                            </TableCell>
                                             <TableCell align="center">Hihaho Folder</TableCell>
                                             <TableCell align="center">Hihaho Links</TableCell>
                                             <TableCell align="center">Details</TableCell>
@@ -594,20 +610,24 @@ function Summary() {
                                                         } else {
                                                             setSearchQuery(searchQuery + " " + videoStat.video.video_id.toString())
                                                         }
+                                                        setPageNum(0);
                                                     }}>
                                                         {videoStat.video.video_id}
                                                     </button>
                                                 </TableCell>
                                                 <TableCell className="border" align="center">
-                                                    <button className="btn" onClick={() => {
-                                                        if (searchQuery === "") {
-                                                            setSearchQuery("\"" + videoStat.video.title + "\"");
-                                                        } else {
-                                                            setSearchQuery(searchQuery + " \"" + videoStat.video.title + "\"")
-                                                        }
-                                                    }}>
-                                                        {videoStat.video.title}
-                                                    </button>
+                                                    <Box sx={{width: 250, maxWidth: 250}}>
+                                                        <button className="btn" onClick={() => {
+                                                            if (searchQuery === "") {
+                                                                setSearchQuery("\"" + videoStat.video.title + "\"");
+                                                            } else {
+                                                                setSearchQuery(searchQuery + " \"" + videoStat.video.title + "\"")
+                                                            }
+                                                            setPageNum(0);
+                                                        }}>
+                                                            {videoStat.video.title}
+                                                        </button>
+                                                    </Box>
                                                 </TableCell>
                                                 <TableCell className="border" align="right">
                                                     {videoStat.total_views?.toLocaleString()}
@@ -624,8 +644,14 @@ function Summary() {
                                                 {user?.benesse && 
                                                     <TableCell className="border" align="right">
                                                         {videoStat.average_rating !== -1 ? (
-                                                            <Tooltip arrow title={<>★☆☆☆☆: {videoStat.one_star} times<br/>★★☆☆☆: {videoStat.two_star} times<br/>★★★☆☆: {videoStat.three_star} times<br/>★★★★☆: {videoStat.four_star} times<br/>★★★★★: {videoStat.five_star} times<br/></>} placement="right">
-                                                                {Number(videoStat.average_rating).toFixed(2)}
+                                                            <Tooltip arrow title={<>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★★★</div>: {videoStat.five_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★★☆</div>: {videoStat.four_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★★☆☆</div>: {videoStat.three_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★★☆☆☆</div>: {videoStat.two_star}</div>
+                                                                    <div className="d-flex flex-row"><div className="text-warning">★☆☆☆☆</div>: {videoStat.one_star}</div></>
+                                                                } placement="right">
+                                                                {Number(videoStat.average_rating).toFixed(1)} ({videoStat.one_star + videoStat.two_star + videoStat.three_star + videoStat.four_star + videoStat.five_star})
                                                             </Tooltip>
                                                         ) : (
                                                             "N/A"
@@ -633,6 +659,18 @@ function Summary() {
                                                     </TableCell>
                                                 }
                                                 <TableCell className="border" align="right">{videoStat.video.status}</TableCell>
+                                                <TableCell className="border" align="center">
+                                                    <div className="d-flex flex-column">
+                                                        <div className="my-2">
+                                                            {videoStat.view_change_percent === 0 ? <TrendingFlatIcon/> : 
+                                                            videoStat.view_change_percent > 0 ? <TrendingUpIcon className="text-success"/> : 
+                                                            <TrendingDownIcon className="text-danger"/>}
+                                                        </div>
+                                                        <div className="my-2">
+                                                            {videoStat.view_change_percent > 0 && "+"}{videoStat.view_change_percent}%
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell className="border" align="center">
                                                     {videoStat.video.folder_name} ({videoStat.video.folder_number})
                                                 </TableCell>
@@ -677,6 +715,7 @@ function Summary() {
                                     onRowsPerPageChange={handleChangeRowsPerPage}
                                     showFirstButton
                                     showLastButton
+                                    ActionsComponent={TablePaginationWithJump}
                                     sx={{
                                         '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
                                         marginBottom: 0,
@@ -750,7 +789,7 @@ function Summary() {
                                 <h4 className="text-center mt-4">Loading interaction data...</h4>
                             } {allInteractions?.length > 0 && interactionsPerTypeChart === "Pie" &&
                                 <div className="d-flex flex-column justify-content-center">
-                                    <p className="text-center">Total amount of interactions by type over all videos</p>
+                                    <p className="text-center">Total amount of interactions by type over a sample of 100 interactions</p>
                                     <PieChart
                                         colors={piePallette}
                                         series={[{
@@ -767,7 +806,7 @@ function Summary() {
                                 <BarChart 
                                     xAxis={[{label:"Interaction type", data: itypeCountBarChartData.map(grouping => grouping.type)}]}
                                     yAxis={[{label:"Total interactions", width:60}]}
-                                    series={[{label:"Total amount of interactions by type over all videos", data: itypeCountBarChartData.map(grouping => grouping.total_interactions), color:"#0dcaef"}]}
+                                    series={[{label:"Total amount of interactions by type over a sample of 1000 interactions", data: itypeCountBarChartData.map(grouping => grouping.total_interactions), color:"#0dcaef"}]}
                                     width={900}
                                     height={400}
                                     slotProps={{
@@ -846,7 +885,7 @@ function Summary() {
                                 <h4 className="text-center mt-4">Loading question data...</h4>
                             } {allQuestions?.length > 0 && questionsPerTypeChart === "Pie" &&
                                 <div className="d-flex flex-column justify-content-center">
-                                    <p className="text-center">Total amount of questions by type over all videos</p>
+                                    <p className="text-center">Total amount of questions by type over a sample of 1000 questions</p>
                                     <PieChart
                                         colors={piePallette}
                                         series={[{
@@ -863,7 +902,7 @@ function Summary() {
                                 <BarChart 
                                     xAxis={[{label:"Question type", data: qtypeCountBarChartData.map(grouping => grouping.type)}]}
                                     yAxis={[{label:"Total questions", width:60}]}
-                                    series={[{label:"Total amount of questions by type over all videos", data: qtypeCountBarChartData.map(grouping => grouping.total_questions), color:"#0dcaef"}]}
+                                    series={[{label:"Total amount of questions by type over a sample of 1000 questions", data: qtypeCountBarChartData.map(grouping => grouping.total_questions), color:"#0dcaef"}]}
                                     width={900}
                                     height={400}
                                     slotProps={{
@@ -882,7 +921,7 @@ function Summary() {
                     </div>
                 </div>
             ) : (
-                <p>You must be logged in to view this page.</p>
+                <LoadingOrLogin loadingLogin={loadingLogin} />
             )}
         </Layout>
     )

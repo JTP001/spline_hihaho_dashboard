@@ -3,9 +3,11 @@ import Layout from "../components/Layout";
 import { Checkbox } from '@mui/material';
 import { Paper, Box } from '@mui/material';
 import axiosInstance from "../components/AxiosInstance";
+import useAuthCheck from "../components/useAuthHook";
+import LoadingOrLogin from "../components/LoadingOrLogin";
 
 function Settings() {
-    const [user, setUser] = useState(null);
+    const { user, loadingLogin } = useAuthCheck();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [formData, setFormData] = useState({
@@ -17,36 +19,14 @@ function Settings() {
     const [successMessage, setSuccessMessage] = useState(false);
 
     useEffect(() => {
-            const checkLoggedIn = async () => {
-                try {
-                    const token = localStorage.getItem("accessToken");
-                    if (token) {
-                        const config = {
-                            headers: {
-                                "Authorization": `Bearer ${token}`
-                            }
-                        }
-                        await axiosInstance.get("user/", config)
-                        .then((response) => {
-                            setUser(response.data);
-                            setFormData({
-                                username:response.data.username,
-                                email:response.data.email,
-                                password:'',
-                                benesse:response.data.benesse
-                            })
-                        })
-                    }
-                    else {
-                        setUser(null);
-                    }
-                }
-                catch (error) {
-                    setUser(null);
-                }
-            };
-            checkLoggedIn();
-        }, []);
+        if (!user) return;
+        setFormData({
+            username:user.username,
+            email:user.email,
+            password:'',
+            benesse:user.benesse
+        })
+    }, [user]);
 
     const handleChange = (e) => {
         setFormData({
@@ -135,7 +115,7 @@ function Settings() {
                 </Box>
                 </div>
             ) : (
-                <p>You must be logged in to view this page.</p>
+                <LoadingOrLogin loadingLogin={loadingLogin} />
             )}
         </Layout>
     )
