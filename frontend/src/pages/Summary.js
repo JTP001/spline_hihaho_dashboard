@@ -24,6 +24,8 @@ import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
 import TablePaginationWithJump from "../components/TablePaginationWithJump";
+import useAuthCheck from "../components/useAuthHook";
+import LoadingOrLogin from "../components/LoadingOrLogin";
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -31,7 +33,7 @@ dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
 function Summary() {
-    const [user, setUser] = useState(null);
+    const { user, loadingLogin } = useAuthCheck();
     const [videoStats, setVideoStats] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
     const [aggrStats, setAggrStats] = useState({});
@@ -67,33 +69,6 @@ function Summary() {
         "Anyone",
         "Only those specified"
     ]
-
-    //----------------------------------Check logged in----------------------------------//
-    useEffect(() => {
-        const checkLoggedIn = async () => {
-            try {
-                const token = localStorage.getItem("accessToken");
-                if (token) {
-                    const config = {
-                        headers: {
-                            "Authorization": `Bearer ${token}`
-                        }
-                    }
-                    await axiosInstance.get("user/", config)
-                    .then((response) => {
-                        setUser(response.data);
-                    })
-                }
-                else {
-                    setUser(null);
-                }
-            }
-            catch (error) {
-                setUser(null);
-            }
-        };
-        checkLoggedIn();
-    }, []);
     
     //------------------------------------Get video ratings------------------------------------//
     useEffect(() => {
@@ -946,7 +921,7 @@ function Summary() {
                     </div>
                 </div>
             ) : (
-                <p>You must be logged in to view this page.</p>
+                <LoadingOrLogin loadingLogin={loadingLogin} />
             )}
         </Layout>
     )
