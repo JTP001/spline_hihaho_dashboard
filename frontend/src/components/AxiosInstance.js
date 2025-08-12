@@ -9,8 +9,8 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use(async (req) => {
-    // Make sure to check for paths that don't need auth like register/login/token refresh first
-    const excludedPaths = ['register', 'login', 'token/refresh'];
+    // Make sure to check for paths that don't need auth like login/token refresh first
+    const excludedPaths = ['login', 'token/refresh'];
 
     const shouldSkipAuth = excludedPaths.some(path =>
         req.url?.includes(path)
