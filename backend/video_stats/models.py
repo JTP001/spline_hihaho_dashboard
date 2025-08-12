@@ -18,6 +18,7 @@ class VideoStats(models.Model):
     started_views = models.IntegerField()
     finished_views = models.IntegerField()
     interaction_clicks = models.IntegerField()
+    num_questions = models.IntegerField()
     video_duration_seconds = models.FloatField()
 
 class InteractionStats(models.Model):

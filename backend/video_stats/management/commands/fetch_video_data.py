@@ -89,6 +89,7 @@ class Command(BaseCommand):
                         "started_views":0,
                         "finished_views":0,
                         "interaction_clicks":0,
+                        "num_questions":0,
                         "video_duration_seconds":round(v_duration/1000, 2) or 11.11,
                     }
                 )
@@ -101,6 +102,7 @@ class Command(BaseCommand):
                 videostats_obj.started_views = v_stats.get("aggregated_statistics").get("started_views") or 0
                 videostats_obj.finished_views = v_stats.get("aggregated_statistics").get("finished_views") or 0
                 videostats_obj.interaction_clicks = v_stats.get("aggregated_statistics").get("interactions").get("total_clicks") or 0
+                videostats_obj.num_questions = v_stats.get("aggregated_statistics").get("questions").get("count") or 0
                 videostats_obj.save()
 
                 # Initialize all interactions if there are aggregated stats so interactions with 0 clicks are included

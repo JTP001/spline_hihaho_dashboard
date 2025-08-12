@@ -1,5 +1,4 @@
-from django.shortcuts import render
-from rest_framework.generics import GenericAPIView, RetrieveAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import GenericAPIView, RetrieveAPIView, RetrieveUpdateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
@@ -60,3 +59,17 @@ class UserAPIView(RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+    
+class ContentToggleByUserView(RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ContentTogglesSerializer
+
+    def get_object(self):
+        return self.request.user.content_toggles
+
+class ContentTogglesUpdateView(UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ContentTogglesUpdateSerializer
+
+    def get_object(self):
+        return self.request.user.content_toggles

@@ -1,18 +1,18 @@
-from .models import CustomUser
+from .models import *
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'email', 'benesse', 'is_superuser', 'is_staff')
+        fields = ('id', 'username', 'email', 'is_superuser', 'is_staff')
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'email', 'password', 'benesse')
+        fields = ('id', 'username', 'email', 'password')
         extra_kwargs = {'password':{'write_only':True}}
 
     def validate(self, attrs):
@@ -46,11 +46,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ('username', 'email', 'password', 'benesse')
+        fields = ('username', 'email', 'password')
         extra_kwargs = {
             'username': {'required': False},
             'email': {'required': False},
-            'benesse': {'required': False},
         }
 
     def update(self, instance, validated_data):
@@ -61,3 +60,15 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
+    
+class ContentTogglesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContentToggles
+        fields = "__all__"
+        read_only_fields = ("user",)
+
+
+class ContentTogglesUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContentToggles
+        fields = ("benesse_toggle",)
