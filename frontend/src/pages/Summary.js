@@ -34,6 +34,7 @@ dayjs.extend(isSameOrAfter);
 
 function Summary() {
     const { user, loadingLogin } = useAuthCheck();
+    const [userContentToggles, setUserContentToggles] = useState({});
     const [videoStats, setVideoStats] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
     const [aggrStats, setAggrStats] = useState({});
@@ -70,17 +71,27 @@ function Summary() {
         "Only those specified"
     ]
     
-    //------------------------------------Get video ratings------------------------------------//
+    //--------------------------Get content toggles and video ratings--------------------------//
     useEffect(() => {
         if (!user) return;
 
-        if (user.benesse) {
+        axiosInstance.get("user/content-toggles/")
+            .then(res => {
+                setUserContentToggles(res.data);
+            })
+            .catch(err => {
+                console.error(err);
+            });
+    }, [user]);
+
+    useEffect(() => {
+        if (userContentToggles.benesse_toggle) {
             axiosInstance.get("videos/video_ratings/")
                 .then((res) => {
                     setVideoRatings(res.data);
                 })
         }
-    }, [user]);
+    }, [userContentToggles])
 
     //----------------------------Get video stats and aggregate----------------------------//
     useEffect(() => {
@@ -556,7 +567,16 @@ function Summary() {
                                                     Interaction Clicks
                                                 </TableSortLabel> 
                                             </TableCell>
-                                            {user?.benesse && 
+                                            <TableCell align="center">
+                                                <TableSortLabel 
+                                                    active={orderBy === "num_questions"}
+                                                    direction={orderBy === "num_questions" ? order : "desc"}
+                                                    onClick={() => handleTableSort("num_questions")}
+                                                >
+                                                    Questions
+                                                </TableSortLabel> 
+                                            </TableCell>
+                                            {userContentToggles?.benesse_toggle && 
                                                 <TableCell align="center">
                                                     <TableSortLabel 
                                                         active={orderBy === "average_rating"}
@@ -641,7 +661,10 @@ function Summary() {
                                                 <TableCell className="border" align="right">
                                                     {videoStat.interaction_clicks?.toLocaleString()}
                                                 </TableCell>
-                                                {user?.benesse && 
+                                                <TableCell className="border" align="right">
+                                                    {videoStat.num_questions?.toLocaleString()}
+                                                </TableCell>
+                                                {userContentToggles?.benesse_toggle && 
                                                     <TableCell className="border" align="right">
                                                         {videoStat.average_rating !== -1 ? (
                                                             <Tooltip arrow title={<>

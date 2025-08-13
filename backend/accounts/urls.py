@@ -9,4 +9,6 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='refresh'),
     path('user/', UserAPIView.as_view(), name='user_info'),
     path('user/update/', UserUpdateView.as_view(), name='user_update'),
+    path('user/content-toggles/', ContentToggleByUserView.as_view(), name='user_content_toggles'),
+    path('user/content-toggles/update/', ContentTogglesUpdateView.as_view(), name='user_content_toggles_update'),
 ]

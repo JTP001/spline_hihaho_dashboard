@@ -14,8 +14,8 @@ function Settings() {
         username:'',
         email:'',
         password:'',
-        benesse:false
     });
+    const [contentToggles, setContentToggles] = useState({});
     const [successMessage, setSuccessMessage] = useState(false);
 
     useEffect(() => {
@@ -24,8 +24,16 @@ function Settings() {
             username:user.username,
             email:user.email,
             password:'',
-            benesse:user.benesse
         })
+
+        axiosInstance.get("user/content-toggles/")
+            .then(res => {
+                setContentToggles(res.data);
+            })
+            .catch(err => {
+                console.error(err);
+                setError("Failed to load content toggles.");
+            });
     }, [user]);
 
     const handleChange = (e) => {
@@ -35,12 +43,12 @@ function Settings() {
         })
     };
 
-    const handleBenesseToggle = (e) => {
-        setFormData({
-            ...formData,
-            benesse:e.target.checked
-        })
-    }
+    const handleToggleChange = (toggleName) => {
+        setContentToggles(prev => ({
+            ...prev,
+            [toggleName]: !prev[toggleName]
+        }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -61,7 +69,7 @@ function Settings() {
             });
         }
         catch (error) {
-            console.error("Registration error: ", error.response);
+            console.error("Update error: ", error.response);
             if (error.response && error.response.data) {
                 const firstField = Object.keys(error.response.data)[0];
                 const firstMessage = error.response.data[firstField][0];
@@ -73,6 +81,28 @@ function Settings() {
                 setSuccessMessage(false);
             }
         }
+
+        try {
+            axiosInstance.patch("user/content-toggles/update/", contentToggles)
+            .then(res => {
+                setError(null);
+                setSuccessMessage(true);
+            })
+        }
+        catch (error) {
+            console.error("Update error: ", error.response);
+            if (error.response && error.response.data) {
+                const firstField = Object.keys(error.response.data)[0];
+                const firstMessage = error.response.data[firstField][0];
+
+                setError(firstMessage);
+                setSuccessMessage(false);
+            } else {
+                setError("An error occurred when trying to update user's content toggles.");
+                setSuccessMessage(false);
+            }
+        }
+
         finally {
             setIsLoading(false);
         }
@@ -103,9 +133,18 @@ function Settings() {
                                 <input className="form-control mx-auto shadow-sm" name="password" value={formData.password} onChange={handleChange} type="password" id="settingsPassword"/>
                             </div>
 
-                            <div className="form-outline my-4">
-                                <label className="form-label" for="settingsBenesse">Benesse content toggle</label>
-                                <Checkbox className="form-control mx-auto" name="benesse" checked={formData.benesse} onChange={handleBenesseToggle} id="settingsBenesse"/>
+                            <div className="mb-2 d-flex flex-column">
+                                {Object.entries(contentToggles).filter(([key]) => key !== "id" && key !== "user")
+                                .map(([toggleName, value]) => (
+                                    <label key={toggleName}>
+                                        {toggleName}:
+                                        <Checkbox
+                                            className="mx-auto"
+                                            checked={value}
+                                            onChange={() => handleToggleChange(toggleName)}
+                                        />
+                                    </label>
+                                ))}
                             </div>
                             {error && <><p style={{color:'red'}}>{error}</p><br /></>}
                             <button type="submit" className="btn btn-success mx-auto shadow-sm" disabled={isLoading} onClick={handleSubmit}>Update</button>
