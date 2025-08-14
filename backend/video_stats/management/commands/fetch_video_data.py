@@ -97,13 +97,16 @@ class Command(BaseCommand):
             v_stats = get_data_safe(f"{BASE_URL}/video/{video_id}/aggregated-statistics")
             if v_stats:
                 # If there are aggregated stats, update VideoStats object accordingly
-                videostats_obj = VideoStats.objects.get(video=video_obj)
-                videostats_obj.total_views = v_stats.get("aggregated_statistics").get("views") or 0
-                videostats_obj.started_views = v_stats.get("aggregated_statistics").get("started_views") or 0
-                videostats_obj.finished_views = v_stats.get("aggregated_statistics").get("finished_views") or 0
-                videostats_obj.interaction_clicks = v_stats.get("aggregated_statistics").get("interactions").get("total_clicks") or 0
-                videostats_obj.num_questions = v_stats.get("aggregated_statistics").get("questions").get("count") or 0
-                videostats_obj.save()
+                try:
+                    videostats_obj = VideoStats.objects.get(video=video_obj)
+                    videostats_obj.total_views = v_stats.get("aggregated_statistics").get("views") or 0
+                    videostats_obj.started_views = v_stats.get("aggregated_statistics").get("started_views") or 0
+                    videostats_obj.finished_views = v_stats.get("aggregated_statistics").get("finished_views") or 0
+                    videostats_obj.interaction_clicks = v_stats.get("aggregated_statistics").get("interactions").get("total_clicks") or 0
+                    videostats_obj.num_questions = v_stats.get("aggregated_statistics").get("questions").get("count") or 0
+                    videostats_obj.save()
+                except VideoStats.DoesNotExist:
+                    videostats_obj = None
 
                 # Initialize all interactions if there are aggregated stats so interactions with 0 clicks are included
                 for i in v_stats["aggregated_statistics"]["interactions"]["details"]:
@@ -119,7 +122,7 @@ class Command(BaseCommand):
                             "duration_seconds":i.get("duration_seconds") or 0.0,
                             "link":i.get("link") or "",
                             "total_clicks":i.get("total_clicks") or 0,
-                            "created_at":i.get("created_at") or datetime.datetime.fromtimestamp(0),
+                            "created_at":i.get("created_at") or video_obj.created_date,
                         }
                     )
 
@@ -135,7 +138,7 @@ class Command(BaseCommand):
                             "average_answer_time_seconds":0.0,
                             "total_answered":q.get("amount_answers") or 0,
                             "total_correctly_answered":q.get("amount_correct_answers") or 0,
-                            "created_at":q.get("created_at") or datetime.datetime.fromtimestamp(0),
+                            "created_at":q.get("created_at") or video_obj.created_date,
                         }
                     )
             
@@ -197,7 +200,7 @@ class Command(BaseCommand):
                     interaction_id = interaction.get("id")
                     
                     try:
-                        existing = InteractionStats.objects.get(interaction_id=interaction_id)
+                        existing = InteractionStats.objects.get(video=video_obj, interaction_id=interaction_id)
                     except InteractionStats.DoesNotExist:
                         existing = None
 
@@ -214,7 +217,7 @@ class Command(BaseCommand):
                             "duration_seconds": existing.duration_seconds if existing else 0.0,
                             "link": interaction.get("link") or "",
                             "total_clicks": interaction.get("total_times_clicked") or 0,
-                            "created_at": existing.created_at if existing else datetime.datetime.fromtimestamp(0),
+                            "created_at": existing.created_at if existing else video_obj.created_date,
                         }
                     )
             
@@ -224,7 +227,7 @@ class Command(BaseCommand):
                     question_id = question.get("id")
                     
                     try:
-                        existing = QuestionStats.objects.get(question_id=question_id)
+                        existing = QuestionStats.objects.get(video=video_obj, question_id=question_id)
                     except QuestionStats.DoesNotExist:
                         existing = None
 
@@ -239,7 +242,7 @@ class Command(BaseCommand):
                             "average_answer_time_seconds": question.get("average_answer_time_seconds") or 0.0,
                             "total_answered": question.get("total_given_answers") or 0,
                             "total_correctly_answered": question.get("total_correct_answers") or 0,
-                            "created_at": existing.created_at if existing else datetime.datetime.fromtimestamp(0),
+                            "created_at": existing.created_at if existing else video_obj.created_date,
                         }
                     )
                     
