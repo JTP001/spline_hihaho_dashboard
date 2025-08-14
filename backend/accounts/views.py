@@ -1,7 +1,8 @@
-from rest_framework.generics import GenericAPIView, RetrieveAPIView, RetrieveUpdateAPIView, UpdateAPIView
+from rest_framework.generics import GenericAPIView, RetrieveAPIView, RetrieveUpdateAPIView, UpdateAPIView, ListAPIView, DestroyAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework import status
 from .serializers import *
 
@@ -59,6 +60,23 @@ class UserAPIView(RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+    
+class ListUsersView(ListAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = CustomUserSerializer
+
+    def get_queryset(self):
+        return CustomUser.objects.exclude(id=self.request.user.id)
+    
+class DeleteUserView(DestroyAPIView):
+    permission_classes = [IsAdminUser]
+    queryset = CustomUser.objects.all()
+    lookup_field = "id"
+
+    def perform_destroy(self, instance):
+        if instance.id == self.request.user.id:
+            raise ValidationError("You cannot delete your own account.")
+        instance.delete()
     
 class ContentToggleByUserView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]

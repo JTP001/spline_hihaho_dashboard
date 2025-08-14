@@ -68,7 +68,7 @@ function HihahoSidebar() {
                     <MenuItem component={<Link />} to="/sessionsview/" icon={<SlideshowIcon />}> Sessions Data </MenuItem>
                     <hr className="mx-3" style={{borderWidth: "3px"}} />
                     <MenuItem component={<Link />} to="/login/" icon={<LoginIcon />}> Login </MenuItem>
-                    <MenuItem component={<Link />} to="/register/" icon={<PersonAddIcon />}> Register </MenuItem>
+                    <MenuItem component={<Link />} to="/users/" icon={<PersonAddIcon />}> Users </MenuItem>
                     <MenuItem component={<Link />} to="/user/update/" icon={<SettingsIcon />}> Settings </MenuItem>
                     <MenuItem onClick={handleLogout} component={<Link />} icon={<LogoutIcon />} to="/login"> Log out </MenuItem>
                 </Menu>
