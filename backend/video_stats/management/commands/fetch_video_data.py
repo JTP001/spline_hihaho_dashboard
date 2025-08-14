@@ -79,8 +79,8 @@ class Command(BaseCommand):
             print(f"{video_id} {v.get("video_container_id")}")
 
             v_data = get_data_safe(f"{BASE_URL}/video/{video_id}")
-            v_duration = v_data.get("duration")
             if v_data:
+                v_duration = v_data.get("duration")
                 # Initialize VideoStats object even when no aggregated stats
                 VideoStats.objects.update_or_create(
                     video=video_obj,

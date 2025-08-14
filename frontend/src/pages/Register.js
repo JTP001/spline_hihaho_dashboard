@@ -63,7 +63,7 @@ function Register() {
                 <Box className="p-3" style={{width:"40vw"}} component={Paper} elevation={3}>
                     <div className="d-flex flex-column justify-content-center text-center">
                         <div className="d-flex justify-content-center">
-                            <h1>Register</h1>
+                            <h1>Register a user</h1>
                         </div>
                         <form className="d-flex flex-column justify-content-center">
                             <div className="form-outline my-4">

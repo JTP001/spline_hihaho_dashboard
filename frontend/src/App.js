@@ -2,6 +2,7 @@ import './App.css';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { VideoFilterProvider } from './context/VideoFilterContext';
 import Register from './pages/Register';
+import Users from './pages/Users';
 import Login from './pages/Login';
 import Summary from './pages/Summary';
 import Interactions from './pages/Interactions';
@@ -26,6 +27,7 @@ function App() {
             <Route path='/sessionsview/' element={<SessionsView />}></Route>
             <Route path='/login/' element={<Login />}></Route>
             <Route path='/register/' element={<Register />}></Route>
+            <Route path='/users/' element={<Users />}></Route>
             <Route path='/user/update/' element={<Settings />}></Route>
           </Routes>
         </BrowserRouter>
