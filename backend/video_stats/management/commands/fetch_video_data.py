@@ -117,9 +117,9 @@ class Command(BaseCommand):
                             "title":i.get("title") or "",
                             "type":i.get("type") or "",
                             "action_type":i.get("action_type") or "",
-                            "start_time_seconds":i.get("start_time_seconds") or 0.0,
-                            "end_time_seconds":i.get("end_time_seconds") or 0.0,
-                            "duration_seconds":i.get("duration_seconds") or 0.0,
+                            "start_time_seconds":i.get("start_time") or 0.0,
+                            "end_time_seconds":i.get("end_time") or 0.0,
+                            "duration_seconds":i.get("duration") or 0.0,
                             "link":i.get("link") or "",
                             "total_clicks":i.get("total_clicks") or 0,
                             "created_at":i.get("created_at") or video_obj.created_date,
@@ -214,7 +214,7 @@ class Command(BaseCommand):
                             "action_type": existing.action_type if existing else "",
                             "start_time_seconds": interaction.get("start_time") or 0.0,
                             "end_time_seconds": interaction.get("end_time") or 0.0,
-                            "duration_seconds": existing.duration_seconds if existing else 0.0,
+                            "duration_seconds": interaction.get("end_time") - interaction.get("start_time") or 0.0,
                             "link": interaction.get("link") or "",
                             "total_clicks": interaction.get("total_times_clicked") or 0,
                             "created_at": existing.created_at if existing else video_obj.created_date,
@@ -284,17 +284,20 @@ class Command(BaseCommand):
             # This assumes there is at least 0 ratings and at most 1 rating per video, specifically for Benesse
             if question_list:
                 rating_index = 0
-                while rating_index < len(question_list) and question_list[rating_index].get("question_type") != "rating":
+                rating = None
+                while rating_index < len(question_list):
+                    if question_list[rating_index].get("question_type") == "rating":
+                        rating = question_list[rating_index]
                     rating_index += 1
 
-                if rating_index < len(question_list):
+                if rating is not None:
                     one_star = 0
                     two_star = 0
                     three_star = 0
                     four_star = 0
                     five_star = 0
                     
-                    for rating_category in question_list[rating_index].get("answers"):
+                    for rating_category in rating.get("answers"):
                         if rating_category.get("label") == "1":
                             one_star = rating_category.get("answered_count")
                         if rating_category.get("label") == "2":
@@ -308,9 +311,9 @@ class Command(BaseCommand):
 
                     VideoRating.objects.update_or_create(
                         video=video_obj,
-                        rating_id=question_list[rating_index].get("id"),
+                        rating_id=rating.get("id"),
                         defaults={
-                            "average_rating":question_list[rating_index].get("average_rating") or 0,
+                            "average_rating":rating.get("average_rating") or 0,
                             "one_star":one_star,
                             "two_star":two_star,
                             "three_star":three_star,
