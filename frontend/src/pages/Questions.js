@@ -18,6 +18,7 @@ import CustomDatePicker from "../components/CustomDatePicker";
 import TablePaginationWithJump from "../components/TablePaginationWithJump";
 import useAuthCheck from "../components/useAuthHook";
 import LoadingOrLogin from "../components/LoadingOrLogin";
+import { ThreeDots } from 'react-loading-icons';
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -28,6 +29,7 @@ function Questions() {
     const { user, loadingLogin } = useAuthCheck();
     const [videos, setVideos] = useState([]);
     const [questions, setQuestions] = useState([]);
+    const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [selectedQuestion, setSelectedQuestion] = useState(null);
     const [answers, setAnswers] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
@@ -64,12 +66,14 @@ function Questions() {
 
     //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
+        setLoadingQuestions(true);
         axiosInstance.get("videos/")
             .then(res => {
                 const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
                 setVideos(videoList);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingQuestions(false));
     }, []);
 
     useEffect(() => {
@@ -86,6 +90,7 @@ function Questions() {
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
+        setLoadingQuestions(true);
         axiosInstance.get(`videos/${videoFilter}/questions/`)
             .then(res => {
                 const questionData = res.data.map(question => ({
@@ -105,12 +110,14 @@ function Questions() {
                     !['open', 'essay', 'vacancy', 'rating'].includes(question.type))[0]?.question_id
                 );
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingQuestions(false));
     }, [videoFilter]);
 
     useEffect(() => {
         if (!selectedQuestion) return;
 
+        setLoadingQuestions(true);
         axiosInstance.get(`videos/${selectedQuestion}/question_answers/`)
             .then(res => {
                 setAnswers(res.data);
@@ -118,6 +125,7 @@ function Questions() {
             .catch(err => {
                 console.error(err);
             })
+            .finally(() => setLoadingQuestions(false));
     }, [selectedQuestion]);
 
     //----------------------------------Handle filtering----------------------------------//
@@ -595,7 +603,12 @@ function Questions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {qTypeBarChartData.length > 0 ? (
+                            {loadingQuestions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (qTypeBarChartData.length > 0 ? (
                                 <BarChart 
                                     xAxis={[{label:"Question type", data: qTypeBarChartData.map(grouping => grouping.type)}]}
                                     yAxis={[{label:"Total answers", width:60}]}
@@ -619,7 +632,7 @@ function Questions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No question data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         } {dataView === "Response breakdown graph" &&
                             <div className="d-flex flex-column">
@@ -660,7 +673,12 @@ function Questions() {
                                     <Link to={`https://studio.hihaho.com/stats/${videos.find(video => video.video_id === videoFilter)?.uuid}`} target="_blank"><IconButton><BarChartIcon /></IconButton></Link>
                                 </div>
                             </div>
-                            {answeredByQuestionBarData.length > 0 ? (
+                            {loadingQuestions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (answeredByQuestionBarData.length > 0 ? (
                             <>
                                 {responseBreakdownChart === "Bar" &&
                                     <BarChart 
@@ -707,7 +725,7 @@ function Questions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No answer data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         } {dataView === "Total answers by questions graph" &&
                             <div className="d-flex flex-column justify-content-center">
@@ -734,7 +752,12 @@ function Questions() {
                                         )}
                                     </Tooltip>
                                 </div>
-                                {filteredQuestions.length > 1 ? (
+                                {loadingQuestions === true ? (
+                                    <div className="d-flex flex-column text-center">
+                                        <h5>Loading...</h5>
+                                        <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                    </div>
+                                ) : (filteredQuestions.length > 1 ? (
                                     <LineChart 
                                         xAxis={[{scaleType:'point', data:lineChartQuestions}]}
                                         series={[
@@ -748,7 +771,7 @@ function Questions() {
                                         <HighlightOffIcon className="mx-2"/>
                                         <h5>Too little data to display</h5>
                                     </Paper>
-                                )}
+                                ))}
                             </div>
                         } {dataView === "Questions per type graphs" &&
                             <div className="d-flex flex-column">
@@ -765,7 +788,12 @@ function Questions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {filteredQuestions.length > 0 ? (
+                            {loadingQuestions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (filteredQuestions.length > 0 ? (
                                 <>
                                 {questionsPerTypeChart === "Pie" &&
                                     <PieChart
@@ -801,7 +829,7 @@ function Questions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No question data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         }
                         

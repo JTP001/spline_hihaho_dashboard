@@ -12,6 +12,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SsidChartIcon from '@mui/icons-material/SsidChart';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import SlideshowIcon from '@mui/icons-material/Slideshow';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import { Paper, InputBase, Tooltip } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
@@ -36,13 +37,17 @@ function Summary() {
     const { user, loadingLogin } = useAuthCheck();
     const [userContentToggles, setUserContentToggles] = useState({});
     const [videoStats, setVideoStats] = useState([]);
+    const [loadingVideoStats, setLoadingVideoStats] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
     const [aggrStats, setAggrStats] = useState({});
     const [filteredAggrStats, setFilteredAggrStats] = useState({});
     const [videoRatings, setVideoRatings] = useState([]);
     const [allInteractions, setAllInteractions] = useState([]);
+    const [loadingInteractions, setLoadingInteractions] = useState([]);
     const [allQuestions, setAllQuestions] = useState([]);
+    const [loadingQuestions, setLoadingQuestions] = useState([]);
     const [allPastTwoMonths, setAllPastTwoMonths] = useState({});
+    const [loadingMonthlyData, setLoadingMonthlyData] = useState([]);
     const [dataView, setDataView] = useState("Summary table");
     const [interactionsPerTypeChart, setInteractionsPerTypeChart] = useState("Bar");
     const [questionsPerTypeChart, setQuestionsPerTypeChart] = useState("Bar");
@@ -69,12 +74,12 @@ function Summary() {
         "Only with the link",
         "Anyone",
         "Only those specified"
-    ]
+    ];
     
     //--------------------------Get content toggles and video ratings--------------------------//
     useEffect(() => {
         if (!user) return;
-
+        
         axiosInstance.get("user/content-toggles/")
             .then(res => {
                 setUserContentToggles(res.data);
@@ -90,11 +95,15 @@ function Summary() {
                 .then((res) => {
                     setVideoRatings(res.data);
                 })
+                .catch(err => {
+                    console.error(err);
+                });
         }
     }, [userContentToggles])
 
     //----------------------------Get video stats and aggregate----------------------------//
     useEffect(() => {
+        setLoadingVideoStats(true)
         axiosInstance.get("videos/stats/")
             .then(res => {
                 const videoStatsData = res.data.map(videoStat => {
@@ -153,7 +162,8 @@ function Summary() {
                 setFolderFilterMenuOptions([...uniqueFolders])
                 setAggrStats(aggregated_stats);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingVideoStats(false));
     }, [videoRatings, allPastTwoMonths]);
     
     //----------------------------------Handle filtering----------------------------------//
@@ -203,6 +213,7 @@ function Summary() {
 
     //-------------------------Get all interactions and questions-------------------------//
     useEffect(() => {
+        setLoadingInteractions(true);
         axiosInstance.get("videos/interactions/")
             .then(res => {
                 const interactionsData = res.data.results.map(interaction => ({
@@ -211,8 +222,10 @@ function Summary() {
                 }));
                 setAllInteractions(interactionsData);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingInteractions(false));
 
+        setLoadingQuestions(true);
         axiosInstance.get("videos/questions/")
             .then(res => {
                 const questionsData = res.data.results.map(question => ({
@@ -228,16 +241,19 @@ function Summary() {
                 }));
                 setAllQuestions(questionsData);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingQuestions(false));
     }, []);
 
     //-------------------------Get all past two month data-------------------------//
     useEffect(() => {
+        setLoadingMonthlyData(true);
         axiosInstance.get("videos/monthly_views/past_two_months/")
             .then(res => {
                 setAllPastTwoMonths(res.data);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingMonthlyData(false));
     }, [])
 
     //----------------------Handle filter from other page navigation----------------------//
@@ -392,63 +408,63 @@ function Summary() {
                             <div className="d-flex flex-row justify-content-around flex-wrap">
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Total Videos </h3>
-                                    {filteredAggrStats.num_videos ? (
-                                    <>
-                                    <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.num_videos?.toLocaleString()}</h3>
-                                        <h3 className="text-secondary">/{aggrStats.num_videos?.toLocaleString()}</h3>
-                                    </div>
-                                    <h3 className="text-info">{Number(((filteredAggrStats.num_videos / aggrStats.num_videos) * 100).toFixed(2)) || 0}%</h3>
-                                    </>
-                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
+                                    {loadingVideoStats === true ? (
+                                        <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>
+                                    ) : (<>
+                                        <div className="d-flex flex-row justify-content-center">
+                                            <h3 className="text-info">{filteredAggrStats.num_videos?.toLocaleString()}</h3>
+                                            <h3 className="text-secondary">/{aggrStats.num_videos?.toLocaleString()}</h3>
+                                        </div>
+                                        <h3 className="text-info">{Number(((filteredAggrStats.num_videos / aggrStats.num_videos) * 100).toFixed(2)) || 0}%</h3>
+                                    </>)}
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Total Views </h3>
-                                    {filteredAggrStats.num_videos ? (
-                                    <>
-                                    <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.total_views?.toLocaleString()}</h3>
-                                        <h3 className="text-secondary">/{aggrStats.total_views?.toLocaleString()}</h3>
-                                    </div>
-                                    <h3 className="text-info">{Number(((filteredAggrStats.total_views / aggrStats.total_views) * 100).toFixed(2)) || 0}%</h3>
-                                    </>
-                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
+                                    {loadingVideoStats === true ? (
+                                        <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>
+                                    ) : (<>
+                                        <div className="d-flex flex-row justify-content-center">
+                                            <h3 className="text-info">{filteredAggrStats.total_views?.toLocaleString()}</h3>
+                                            <h3 className="text-secondary">/{aggrStats.total_views?.toLocaleString()}</h3>
+                                        </div>
+                                        <h3 className="text-info">{Number(((filteredAggrStats.total_views / aggrStats.total_views) * 100).toFixed(2)) || 0}%</h3>
+                                    </>)}
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Started Views </h3>
-                                    {filteredAggrStats.num_videos ? (
-                                    <>
-                                    <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.started_views?.toLocaleString()}</h3>
-                                        <h3 className="text-secondary">/{aggrStats.started_views?.toLocaleString()}</h3>
-                                    </div>
-                                    <h3 className="text-info">{Number(((filteredAggrStats.started_views / aggrStats.started_views) * 100).toFixed(2)) || 0}%</h3>
-                                    </>
-                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
+                                    {loadingVideoStats === true ? (
+                                        <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>
+                                    ) : (<>
+                                        <div className="d-flex flex-row justify-content-center">
+                                            <h3 className="text-info">{filteredAggrStats.started_views?.toLocaleString()}</h3>
+                                            <h3 className="text-secondary">/{aggrStats.started_views?.toLocaleString()}</h3>
+                                        </div>
+                                        <h3 className="text-info">{Number(((filteredAggrStats.started_views / aggrStats.started_views) * 100).toFixed(2)) || 0}%</h3>
+                                    </>)}
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Finished Views </h3>
-                                    {filteredAggrStats.num_videos ? (
-                                    <>
-                                    <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.finished_views?.toLocaleString()}</h3>
-                                        <h3 className="text-secondary">/{aggrStats.finished_views?.toLocaleString()}</h3>
-                                    </div>
-                                    <h3 className="text-info">{Number(((filteredAggrStats.finished_views / aggrStats.finished_views) * 100).toFixed(2)) || 0}%</h3>
-                                    </>
-                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
+                                    {loadingVideoStats === true ? (
+                                        <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>
+                                    ) : (<>
+                                        <div className="d-flex flex-row justify-content-center">
+                                            <h3 className="text-info">{filteredAggrStats.finished_views?.toLocaleString()}</h3>
+                                            <h3 className="text-secondary">/{aggrStats.finished_views?.toLocaleString()}</h3>
+                                        </div>
+                                        <h3 className="text-info">{Number(((filteredAggrStats.finished_views / aggrStats.finished_views) * 100).toFixed(2)) || 0}%</h3>
+                                    </>)}
                                 </Paper>
                                 <Paper className="my-2 d-flex flex-column text-center rounded-5 p-2" elevation={2}>
                                     <h3 className="text-secondary">Interaction Clicks </h3>
-                                    {filteredAggrStats.num_videos ? (
-                                    <>
-                                    <div className="d-flex flex-row justify-content-center">
-                                        <h3 className="text-info">{filteredAggrStats.interaction_clicks?.toLocaleString()}</h3>
-                                        <h3 className="text-secondary">/{aggrStats.interaction_clicks?.toLocaleString()}</h3>
-                                    </div>
-                                    <h3 className="text-info">{Number(((filteredAggrStats.interaction_clicks / aggrStats.interaction_clicks) * 100).toFixed(2)) || 0}%</h3>
-                                    </>
-                                    ) : (<ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>)}
+                                    {loadingVideoStats === true ? (
+                                        <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>
+                                    ) : (<>
+                                        <div className="d-flex flex-row justify-content-center">
+                                            <h3 className="text-info">{filteredAggrStats.interaction_clicks?.toLocaleString()}</h3>
+                                            <h3 className="text-secondary">/{aggrStats.interaction_clicks?.toLocaleString()}</h3>
+                                        </div>
+                                        <h3 className="text-info">{Number(((filteredAggrStats.interaction_clicks / aggrStats.interaction_clicks) * 100).toFixed(2)) || 0}%</h3>
+                                    </>)}
                                 </Paper>
                             </div>
 
@@ -808,9 +824,11 @@ function Summary() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {(allInteractions === null || allInteractions?.length <= 0) &&
-                                <h4 className="text-center mt-4">Loading interaction data...</h4>
-                            } {allInteractions?.length > 0 && interactionsPerTypeChart === "Pie" &&
+                            {loadingInteractions === true ? (
+                                <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>
+                            ) : (allInteractions?.length > 0 ? (
+                                <>
+                                {interactionsPerTypeChart === "Pie" &&
                                 <div className="d-flex flex-column justify-content-center">
                                     <p className="text-center">Total amount of interactions by type over a sample of 100 interactions</p>
                                     <PieChart
@@ -824,8 +842,7 @@ function Summary() {
                                         height={400}
                                     />
                                 </div>
-                                
-                            } {allInteractions?.length > 0 && interactionsPerTypeChart === "Bar" &&
+                                } {allInteractions?.length > 0 && interactionsPerTypeChart === "Bar" &&
                                 <BarChart 
                                     xAxis={[{label:"Interaction type", data: itypeCountBarChartData.map(grouping => grouping.type)}]}
                                     yAxis={[{label:"Total interactions", width:60}]}
@@ -841,7 +858,13 @@ function Summary() {
                                         },
                                     }}
                                 />
-                            }
+                                }</>
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No interaction data to display</h5>
+                                </Paper>
+                            ))}
                             </div>
                         } {dataView === "Question graphs" &&
                             <div className="d-flex flex-column">
@@ -904,9 +927,11 @@ function Summary() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {(allQuestions === null || allQuestions?.length <= 0) &&
-                                <h4 className="text-center mt-4">Loading question data...</h4>
-                            } {allQuestions?.length > 0 && questionsPerTypeChart === "Pie" &&
+                            {loadingQuestions === true ? (
+                                <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={50}/>
+                            ) : (allQuestions?.length > 0 ? (
+                                <>
+                                {questionsPerTypeChart === "Pie" &&
                                 <div className="d-flex flex-column justify-content-center">
                                     <p className="text-center">Total amount of questions by type over a sample of 1000 questions</p>
                                     <PieChart
@@ -920,8 +945,7 @@ function Summary() {
                                         height={400}
                                     />
                                 </div>
-                                
-                            } {allQuestions?.length > 0 && questionsPerTypeChart === "Bar" &&
+                                } {questionsPerTypeChart === "Bar" &&
                                 <BarChart 
                                     xAxis={[{label:"Question type", data: qtypeCountBarChartData.map(grouping => grouping.type)}]}
                                     yAxis={[{label:"Total questions", width:60}]}
@@ -937,10 +961,15 @@ function Summary() {
                                         },
                                     }}
                                 />
-                            }
+                                }</>
+                            ) : (
+                                <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
+                                    <HighlightOffIcon className="mx-2"/>
+                                    <h5>No question data to display</h5>
+                                </Paper>
+                            ))}
                             </div>
                         }
-                        
                     </div>
                 </div>
             ) : (
