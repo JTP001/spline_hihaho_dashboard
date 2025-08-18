@@ -443,9 +443,9 @@ function Questions() {
                                             </TableCell>
                                             <TableCell align="center">
                                                 <TableSortLabel 
-                                                    active={orderBy === "total_answred"}
-                                                    direction={orderBy === "total_answred" ? order : "desc"}
-                                                    onClick={() => handleTableSort("total_answred")}
+                                                    active={orderBy === "total_answered"}
+                                                    direction={orderBy === "total_answered" ? order : "desc"}
+                                                    onClick={() => handleTableSort("total_answered")}
                                                 >
                                                     Total Answers
                                                 </TableSortLabel> 
