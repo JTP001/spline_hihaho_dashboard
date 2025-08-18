@@ -148,7 +148,7 @@ function Questions() {
                 question.created_at.isSameOrBefore(endDate.endOf("day"));
 
             const matchesTypeFilter = typeFilter.includes(question.type);
-            const matchesAvgTimeFilter = question.average_answer_time_seconds > avgTimeFilter;
+            const matchesAvgTimeFilter = question.average_answer_time_seconds >= avgTimeFilter;
             let matchesCorrectPercentFilter = true;
             if (correctPercentFilter === "≥ 25%") {matchesCorrectPercentFilter = question.percent_correct >= 25}
             else if (correctPercentFilter === "≤ 25%") {matchesCorrectPercentFilter = question.percent_correct <= 25}
@@ -433,7 +433,7 @@ function Questions() {
                                                                             onChange={() => setAvgTimeFilter(option)}
                                                                         />
                                                                     }
-                                                                    label={`> ${option}s`}
+                                                                    label={`≥ ${option}s`}
                                                                 />
                                                             )}
                                                         </Box>
@@ -565,12 +565,12 @@ function Questions() {
                             </div>
                         } {dataView === "Correct answers per type graph" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                            <div className="d-flex flex-row justify-content-center flex-wrap align-items-center">
                                 <Tooltip arrow placement="top" title="Open, Form and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
                                     {typesIncludeExclude ? (
-                                        <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("include"); setTypesIncludeExclude(false)}}>Include Open, Form and Rating questions</button>
+                                        <button className="btn bg-info-subtle my-3 p-3" onClick={() => {handleTypesIncludeExclude("include"); setTypesIncludeExclude(false)}}>Include Open, Form and Rating questions</button>
                                     ) : (
-                                        <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("exclude"); setTypesIncludeExclude(true)}}>Exclude Open, Form and Rating questions</button>
+                                        <button className="btn bg-info-subtle my-3 p-3" onClick={() => {handleTypesIncludeExclude("exclude"); setTypesIncludeExclude(true)}}>Exclude Open, Form and Rating questions</button>
                                     )}
                                 </Tooltip>
                                 <Paper className="mx-2 my-3 d-flex justify-content-center rounded-5" elevation={2}>
@@ -590,7 +590,7 @@ function Questions() {
                                                             onChange={() => setAvgTimeFilter(option)}
                                                         />
                                                     }
-                                                    label={`> ${option}s`}
+                                                    label={`≥ ${option}s`}
                                                 />
                                             )}
                                         </Box>
