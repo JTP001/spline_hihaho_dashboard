@@ -206,13 +206,13 @@ function MonthlyView() {
                                     classNamePrefix="select"
                                     value={videos.map(video => ({
                                         value: video.video_id,
-                                        label: `${video.title} (ID: ${video.video_id})`
+                                        label: `${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`
                                     })).find(option => option.value === videoFilter)}
                                     isSearchable={true}
                                     name="Video selection"
                                     options={videos.map(video => ({
                                         value:video.video_id,
-                                        label:`${video.title} (ID: ${video.video_id})`,
+                                        label:`${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`,
                                     }))}
                                     onChange={handleSelectVideoFilterChange}
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}

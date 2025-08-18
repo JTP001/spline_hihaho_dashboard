@@ -230,14 +230,15 @@ function Questions() {
     
     //--------------------Create 'answered count by question' chart data--------------------//
     const answeredByQuestionBarData = answers.filter((answer) => answer.question.question_id === selectedQuestion)
-        .map((answer) => ({label:answer.label, value:answer.answered_count, color:answer.is_correct_answer ? "#0dcaef" : "tomato"}))
+        .map((answer) => {
+            const label = answer.label.length > 30 ? answer.label.slice(0, 27) + "..." : answer.label
+            return {label:label, value:answer.answered_count, color:answer.is_correct_answer ? "#0dcaef" : "tomato"}})
         .sort((a, b) => b.value - a.value);
 
     const answeredByQuestionPieData = answeredByQuestionBarData.map((answer, index) => {
             const question = questions.find(question => question.question_id === selectedQuestion);
             const percent = ((answer.value/question.total_answered) * 100).toFixed(1);
-            const label = answer.label.length > 30 ? answer.label.slice(0, 27) + "..." : answer.label
-            return {id:index, label:`"${label}": ${percent}% (${answer.value})`, value:answer.value, color:answer.color};
+            return {id:index, label:`"${answer.label}": ${percent}% (${answer.value})`, value:answer.value, color:answer.color};
         });
 
     //----------------------Create 'questions by type' chart data----------------------//
@@ -301,13 +302,13 @@ function Questions() {
                                     classNamePrefix="select"
                                     value={videos.map(video => ({
                                         value: video.video_id,
-                                        label: `${video.title} (ID: ${video.video_id})`
+                                        label: `${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`
                                     })).find(option => option.value === videoFilter)}
                                     isSearchable={true}
                                     name="Video selection"
                                     options={videos.map(video => ({
                                         value:video.video_id,
-                                        label:`${video.title} (ID: ${video.video_id})`,
+                                        label:`${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`,
                                     }))}
                                     onChange={handleSelectVideoFilterChange}
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}
@@ -647,7 +648,7 @@ function Questions() {
                                                 .filter((question) => !['open', 'essay', 'vacancy', 'rating'].includes(question.type))
                                                 .map(question => ({
                                                     value: question.question_id,
-                                                    label: `${question.title} (ID: ${question.question_id})`
+                                                    label: `${question.title.length > 30 ? question.title.slice(0, 27) + "..." : question.title} (ID: ${question.question_id})`
                                                 })).find(option => option.value === selectedQuestion)}
                                             isSearchable={true}
                                             name="Question selection"
@@ -655,7 +656,7 @@ function Questions() {
                                                 .filter((question) => !['open', 'essay', 'vacancy', 'rating'].includes(question.type))
                                                 .map(question => ({
                                                 value:question.question_id,
-                                                label:`${question.title} (ID: ${question.question_id})`,
+                                                label:`${question.title.length > 30 ? question.title.slice(0, 27) + "..." : question.title} (ID: ${question.question_id})`,
                                             }))}
                                             onChange={(selectedOption) => setSelectedQuestion(selectedOption.value)}
                                             styles={{menu:(provided) => ({...provided, zIndex:1500})}}
