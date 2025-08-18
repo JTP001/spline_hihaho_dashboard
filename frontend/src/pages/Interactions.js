@@ -87,9 +87,12 @@ function Interactions() {
                         const bucketSizeSeconds = Math.max(1, Math.round((res.data[0].video_duration_seconds * 0.05)*100/100));
                         const bucketItems = new Array(Math.ceil(res.data[0].video_duration_seconds / bucketSizeSeconds)).fill(0);
 
-                        const shortInteractions = interactionsData.filter(interaction => {
-                            return interaction.duration_seconds <= durationBound}
-                        );
+                        let shortInteractions = interactionsData;
+                        if (durationBound !== 0) {
+                            shortInteractions = interactionsData.filter(interaction => {
+                                return interaction.duration_seconds <= durationBound}
+                            );
+                        };
                         shortInteractions.forEach(interaction => {
                             const bucketIndex = Math.floor(interaction.start_time_seconds / bucketSizeSeconds);
                             if (bucketIndex >= 0 && bucketIndex < bucketItems.length) {
@@ -581,6 +584,7 @@ function Interactions() {
                                         <li><button className="dropdown-item" value={20} onClick={(e) => setDurationBound(e.target.value)}>20s</button></li>
                                         <li><button className="dropdown-item" value={50} onClick={(e) => setDurationBound(e.target.value)}>50s</button></li>
                                         <li><button className="dropdown-item" value={100} onClick={(e) => setDurationBound(e.target.value)}>100s</button></li>
+                                        <li><button className="dropdown-item" value={0} onClick={(e) => setDurationBound(e.target.value)}>All</button></li>
                                     </ul>
                                 </div>
                             </div>
