@@ -577,14 +577,14 @@ function Interactions() {
                                 <label className="my-auto">Only include interactions shorter than:</label>
                                 <div className="dropdown">
                                     <button className="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
-                                        >{durationBound}s
+                                        >{durationBound !== 0 ? durationBound + "s" : "All"}
                                     </button>
                                     <ul className="dropdown-menu">
                                         <li><button className="dropdown-item" value={10} onClick={(e) => setDurationBound(e.target.value)}>10s</button></li>
                                         <li><button className="dropdown-item" value={20} onClick={(e) => setDurationBound(e.target.value)}>20s</button></li>
                                         <li><button className="dropdown-item" value={50} onClick={(e) => setDurationBound(e.target.value)}>50s</button></li>
                                         <li><button className="dropdown-item" value={100} onClick={(e) => setDurationBound(e.target.value)}>100s</button></li>
-                                        <li><button className="dropdown-item" value={0} onClick={(e) => setDurationBound(e.target.value)}>All</button></li>
+                                        <li><button className="dropdown-item" value={"All"} onClick={(e) => setDurationBound(0)}>All</button></li>
                                     </ul>
                                 </div>
                             </div>
