@@ -217,7 +217,7 @@ function Questions() {
 
     //--------------------Create 'answers by questions' line chart data--------------------//
     const lineChartDataSorted = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
-    const lineChartQuestions = lineChartDataSorted.map(question => `${question.title} (${question.video_time_seconds}s)`);
+    const lineChartQuestions = lineChartDataSorted.map(question => `${question.title.length > 30 ? question.title.slice(0, 27) + "..." : question.title} (${question.video_time_seconds}s)`);
     const lineChartAnswered = lineChartDataSorted.map(question => question.total_answered);
     const lineChartCorrectlyAnswered = lineChartDataSorted.map(question => question.total_correctly_answered);
 
