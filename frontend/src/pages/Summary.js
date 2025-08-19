@@ -47,7 +47,6 @@ function Summary() {
     const [allQuestions, setAllQuestions] = useState([]);
     const [loadingQuestions, setLoadingQuestions] = useState([]);
     const [allPastTwoMonths, setAllPastTwoMonths] = useState({});
-    const [loadingMonthlyData, setLoadingMonthlyData] = useState([]);
     const [dataView, setDataView] = useState("Summary table");
     const [interactionsPerTypeChart, setInteractionsPerTypeChart] = useState("Bar");
     const [questionsPerTypeChart, setQuestionsPerTypeChart] = useState("Bar");
@@ -247,13 +246,11 @@ function Summary() {
 
     //-------------------------Get all past two month data-------------------------//
     useEffect(() => {
-        setLoadingMonthlyData(true);
         axiosInstance.get("videos/monthly_views/past_two_months/")
             .then(res => {
                 setAllPastTwoMonths(res.data);
             })
-            .catch(err => console.error(err))
-            .finally(() => setLoadingMonthlyData(false));
+            .catch(err => console.error(err));
     }, [])
 
     //----------------------Handle filter from other page navigation----------------------//
