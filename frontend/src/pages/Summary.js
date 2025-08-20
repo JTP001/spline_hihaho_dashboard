@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import Layout from "../components/Layout";
 import { Link, useLocation } from "react-router-dom";
 import { useVideoFilter } from '../context/VideoFilterContext';
-import { IconButton, Menu, MenuItem, Typography, Checkbox, FormControlLabel, Box } from '@mui/material';
+import { IconButton, Menu, MenuItem, Typography, Checkbox, FormControlLabel, Box, TextField } from '@mui/material';
 import FilterListIcon from "@mui/icons-material/FilterList";
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -19,7 +19,7 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
 import SearchIcon from '@mui/icons-material/Search';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel } from "@mui/material";
-import { BarChart, PieChart } from '@mui/x-charts';
+import { BarChart, PieChart, ToolbarButton } from '@mui/x-charts';
 import { ThreeDots } from 'react-loading-icons';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
@@ -55,6 +55,8 @@ function Summary() {
     const [orderBy, setOrderBy] = useState("video.title");
     const [order, setOrder] = useState("asc");
     const [searchQuery, setSearchQuery] = useState("");
+    const [viewFilters, setViewFilters] = useState(false);
+    const [viewThreshold, setViewThreshold] = useState(0);
     const [folderFilters, setFolderFilters] = useState([]);
     const [folderFilterMenuOptions, setFolderFilterMenuOptions] = useState([])
     const [anchorFolderFilterMenu, setAnchorFolderFilterMenu] = useState(null); // Anchors the place the filter menu appears in the DOM
@@ -62,6 +64,7 @@ function Summary() {
     const [statusFilters, setStatusFilters] = useState([0, 1, 2, 3, 4]);
     const [anchorFilterMenu, setAnchorFilterMenu] = useState(null); // Anchors the place the filter menu appears in the DOM
     const filterMenuOpen = Boolean(anchorFilterMenu); // Filter menu is open when it is not null
+    const [excludeNA, setExcludeNA] = useState(false);
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
     const location = useLocation();
@@ -185,10 +188,12 @@ function Summary() {
 
             const matchesFolders = !folderFilters.includes(`${videoStat.video.folder_name} (${videoStat.video.folder_number})`)
             const matchesStatus = statusFilters.includes(videoStat.video.status);
+            const matchesExcludeNA = excludeNA ? videoStat.average_rating !== -1 : true;
+            const matchesViewThreshold = videoStat.total_views >= viewThreshold;
 
-            return matchesSearch && matchesDate && matchesFolders && matchesStatus;
+            return matchesSearch && matchesDate && matchesFolders && matchesStatus && matchesExcludeNA && matchesViewThreshold;
         });
-    }, [videoStats, searchQuery, startDate, endDate, folderFilters, statusFilters]);
+    }, [videoStats, searchQuery, startDate, endDate, folderFilters, statusFilters, excludeNA, viewThreshold]);
 
     //------------------------------Filter aggregated stats------------------------------//
     useEffect(() => {
@@ -476,51 +481,12 @@ function Summary() {
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
                                 </Paper>
-                                <Paper className="my-3 mx-2 d-flex justify-content-center rounded-5" elevation={2}>
-                                    <IconButton onClick={(e) => setAnchorFolderFilterMenu(anchorFolderFilterMenu ? null : e.currentTarget)}>
-                                        <FilterListIcon />
-                                    </IconButton>
-                                    <Menu anchorEl={anchorFolderFilterMenu} open={folderFilterMenuOpen} onClose={() => setAnchorFolderFilterMenu(null)}>
-                                        <MenuItem disabled>
-                                            <Typography variant="subtitle1">Folder Filter Options</Typography>
-                                        </MenuItem>
-                                        <Box px={2} className="d-flex flex-column" gap={1}>
-                                            {folderFilterMenuOptions.map((filterOption) => (
-                                                <FormControlLabel key={filterOption} 
-                                                    control={
-                                                        <Checkbox 
-                                                            checked={!folderFilters.includes(filterOption)} 
-                                                            onChange={() => handleFolderFilterToggle(filterOption)}
-                                                        />
-                                                    }
-                                                    label={`${filterOption}`}
-                                                />
-                                            ))}
-                                        </Box>
-                                    </Menu>
-                                </Paper>
                                 <Paper className="d-flex justify-content-center rounded-5" elevation={2}>
-                                    <IconButton onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
-                                        <FilterListIcon />
-                                    </IconButton>
-                                    <Menu anchorEl={anchorFilterMenu} open={filterMenuOpen} onClose={() => setAnchorFilterMenu(null)}>
-                                        <MenuItem disabled>
-                                            <Typography variant="subtitle1">Status Filter Options</Typography>
-                                        </MenuItem>
-                                        <Box px={2} className="d-flex flex-column" gap={1}>
-                                            {[0, 1, 2, 3, 4].map((filterOption) => (
-                                                <FormControlLabel key={filterOption} 
-                                                    control={
-                                                        <Checkbox 
-                                                            checked={statusFilters.includes(filterOption)} 
-                                                            onChange={() => handleStatusFilterToggle(filterOption)}
-                                                        />
-                                                    }
-                                                    label={`${filterOption} (${statusFilterText[filterOption]})`}
-                                                />
-                                            ))}
-                                        </Box>
-                                    </Menu>
+                                    <Tooltip arrow title="Filter options" placement="top">
+                                        <IconButton onClick={() => setViewFilters(!viewFilters)}>
+                                            <FilterListIcon />
+                                        </IconButton>
+                                    </Tooltip>
                                 </Paper>
                                 <CustomDatePicker 
                                     startDate={startDate} 
@@ -530,6 +496,83 @@ function Summary() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
+
+                            {viewFilters && 
+                                <div className="mb-3 mt-1 d-flex flex-row justify-content-around flex-wrap align-items-center">
+                                    <Paper className="d-flex justify-content-center rounded-5" elevation={1}>
+                                        <button className="btn bg-info-subtle rounded-5 p-2" onClick={(e) => setAnchorFolderFilterMenu(anchorFolderFilterMenu ? null : e.currentTarget)}>
+                                            Folder
+                                        </button>
+                                        <Menu anchorEl={anchorFolderFilterMenu} open={folderFilterMenuOpen} onClose={() => setAnchorFolderFilterMenu(null)}>
+                                            <MenuItem disabled>
+                                                <Typography variant="subtitle1">Folder Filter Options</Typography>
+                                            </MenuItem>
+                                            <Box px={2} className="d-flex flex-column" gap={1}>
+                                                {folderFilterMenuOptions.map((filterOption) => (
+                                                    <FormControlLabel key={filterOption} 
+                                                        control={
+                                                            <Checkbox 
+                                                                checked={!folderFilters.includes(filterOption)} 
+                                                                onChange={() => handleFolderFilterToggle(filterOption)}
+                                                            />
+                                                        }
+                                                        label={`${filterOption}`}
+                                                    />
+                                                ))}
+                                            </Box>
+                                        </Menu>
+                                    </Paper>
+                                    <Paper className="d-flex justify-content-center rounded-5" elevation={1}>
+                                        <button className="btn bg-info-subtle rounded-5 p-2" onClick={(e) => setAnchorFilterMenu(anchorFilterMenu ? null : e.currentTarget)}>
+                                            Status
+                                        </button>
+                                        <Menu anchorEl={anchorFilterMenu} open={filterMenuOpen} onClose={() => setAnchorFilterMenu(null)}>
+                                            <MenuItem disabled>
+                                                <Typography variant="subtitle1">Status Filter Options</Typography>
+                                            </MenuItem>
+                                            <Box px={2} className="d-flex flex-column" gap={1}>
+                                                {[0, 1, 2, 3, 4].map((filterOption) => (
+                                                    <FormControlLabel key={filterOption} 
+                                                        control={
+                                                            <Checkbox 
+                                                                checked={statusFilters.includes(filterOption)} 
+                                                                onChange={() => handleStatusFilterToggle(filterOption)}
+                                                            />
+                                                        }
+                                                        label={`${filterOption} (${statusFilterText[filterOption]})`}
+                                                    />
+                                                ))}
+                                            </Box>
+                                        </Menu>
+                                    </Paper>
+                                    {userContentToggles?.benesse_toggle && 
+                                        <Paper className="d-flex justify-content-center rounded-5" elevation={1}>
+                                            <button className="btn bg-info-subtle rounded-5 p-2" onClick={() => setExcludeNA(!excludeNA)}>
+                                                {excludeNA ? "Include" : "Exclude"} N/A in Average Rating
+                                            </button>
+                                        </Paper>
+                                    }
+                                    <Paper className="d-flex flex-row justify-content-center p-2 rounded-5 bg-info-subtle align-items-center" elevation={1}>
+                                        Total view threshold:
+                                        <TextField
+                                            className='mx-2'
+                                            size="small"
+                                            type="number"
+                                            variant='standard'
+                                            style={{ width: 90 }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    if (e.target.value < 0) {
+                                                        e.target.value = 0;
+                                                    }
+                                                    setViewThreshold(e.target.value);
+                                                }
+                                            }}
+                                        />
+                                    </Paper>
+                                </div>
+                            }
+
                             <TableContainer component={Paper} elevation={3}>
                                 <Table aria-label="Summary table">
                                     <TableHead className="bg-info-subtle">
