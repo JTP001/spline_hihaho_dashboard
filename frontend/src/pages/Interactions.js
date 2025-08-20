@@ -15,6 +15,7 @@ import CustomDatePicker from "../components/CustomDatePicker";
 import TablePaginationWithJump from "../components/TablePaginationWithJump";
 import useAuthCheck from "../components/useAuthHook";
 import LoadingOrLogin from "../components/LoadingOrLogin";
+import { ThreeDots } from 'react-loading-icons';
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -25,6 +26,7 @@ function Interactions() {
     const { user, loadingLogin } = useAuthCheck();
     const [videos, setVideos] = useState([]);
     const [interactions, setInteractions] = useState([]);
+    const [loadingInteractions, setLoadingInteractions] = useState(false);
     const { videoFilter, setVideoFilter } = useVideoFilter();
     const [bucketSize, setBucketSize] = useState(1);
     const [bucketArray, setBucketArray] = useState([]);
@@ -44,12 +46,14 @@ function Interactions() {
 
     //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
+        setLoadingInteractions(true);
         axiosInstance.get("videos/")
             .then(res => {
                 const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
                 setVideos(videoList);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingInteractions(false));
     }, []);
 
     useEffect(() => {
@@ -66,6 +70,7 @@ function Interactions() {
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
+        setLoadingInteractions(true);
         axiosInstance.get(`videos/${videoFilter}/interactions/`)
             .then(res => {
                 const interactionsData = res.data.map(interaction => ({
@@ -82,9 +87,12 @@ function Interactions() {
                         const bucketSizeSeconds = Math.max(1, Math.round((res.data[0].video_duration_seconds * 0.05)*100/100));
                         const bucketItems = new Array(Math.ceil(res.data[0].video_duration_seconds / bucketSizeSeconds)).fill(0);
 
-                        const shortInteractions = interactionsData.filter(interaction => {
-                            return interaction.duration_seconds <= durationBound}
-                        );
+                        let shortInteractions = interactionsData;
+                        if (durationBound !== 0) {
+                            shortInteractions = interactionsData.filter(interaction => {
+                                return interaction.duration_seconds <= durationBound}
+                            );
+                        };
                         shortInteractions.forEach(interaction => {
                             const bucketIndex = Math.floor(interaction.start_time_seconds / bucketSizeSeconds);
                             if (bucketIndex >= 0 && bucketIndex < bucketItems.length) {
@@ -99,9 +107,17 @@ function Interactions() {
                         setBucketSize(bucketSizeSeconds)
                         setBucketArray(bucketItems);
                     })
+                    .finally(() => {
+                        setLoadingInteractions(false);
+                    })
+                } else {
+                    setLoadingInteractions(false);
                 }
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err);
+                setLoadingInteractions(false);
+            });
     }, [videoFilter, durationBound]);
 
     //----------------------------------Handle filtering----------------------------------//
@@ -255,13 +271,13 @@ function Interactions() {
                                     classNamePrefix="select"
                                     value={videos.map(video => ({
                                         value: video.video_id,
-                                        label: `${video.title} (ID: ${video.video_id})`
+                                        label: `${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`
                                     })).find(option => option.value === videoFilter)}
                                     isSearchable={true}
                                     name="Video selection"
                                     options={videos.map(video => ({
                                         value:video.video_id,
-                                        label:`${video.title} (ID: ${video.video_id})`,
+                                        label:`${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`,
                                     }))}
                                     onChange={handleSelectVideoFilterChange}
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}
@@ -448,7 +464,12 @@ function Interactions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {filteredInteractions.length > 0 ? (
+                            {loadingInteractions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (filteredInteractions.length > 0 ? (
                                 <>
                                 {clicksPerTypeChart === "Pie" &&
                                     <div className="d-flex flex-column">
@@ -487,7 +508,7 @@ function Interactions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No interaction data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         } {dataView === "Clicks per action type graphs" &&
                             <div className="d-flex flex-column">
@@ -504,7 +525,12 @@ function Interactions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {filteredInteractions.length > 0 ? (
+                            {loadingInteractions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (filteredInteractions.length > 0 ? (
                                 <>
                                 {clicksPerActionTypeChart === "Pie" &&
                                     <div className="d-flex flex-column">
@@ -543,7 +569,7 @@ function Interactions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No interaction data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         } {dataView === "Clicks by video duration graph" &&
                             <div className="d-flex flex-column">
@@ -551,17 +577,23 @@ function Interactions() {
                                 <label className="my-auto">Only include interactions shorter than:</label>
                                 <div className="dropdown">
                                     <button className="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
-                                        >{durationBound}s
+                                        >{durationBound !== 0 ? durationBound + "s" : "All"}
                                     </button>
                                     <ul className="dropdown-menu">
                                         <li><button className="dropdown-item" value={10} onClick={(e) => setDurationBound(e.target.value)}>10s</button></li>
                                         <li><button className="dropdown-item" value={20} onClick={(e) => setDurationBound(e.target.value)}>20s</button></li>
                                         <li><button className="dropdown-item" value={50} onClick={(e) => setDurationBound(e.target.value)}>50s</button></li>
                                         <li><button className="dropdown-item" value={100} onClick={(e) => setDurationBound(e.target.value)}>100s</button></li>
+                                        <li><button className="dropdown-item" value={"All"} onClick={(e) => setDurationBound(0)}>All</button></li>
                                     </ul>
                                 </div>
                             </div>
-                            {bucketArray.length > 0 ? (
+                            {loadingInteractions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (bucketArray.length > 0 ? (
                                 <LineChart 
                                     xAxis={[{data:bucketArray.map((_, i) => `${i * bucketSize}s`), scaleType:'point', label:'Video time (seconds)'}]}
                                     series={[{data:bucketArray, label:"clicks", showMark:false, area:true, color:"#0dcaef"}]}
@@ -572,7 +604,7 @@ function Interactions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No interaction data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         } {dataView === "Interactions per type graphs" &&
                             <div className="d-flex flex-column">
@@ -589,7 +621,12 @@ function Interactions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {filteredInteractions.length > 0 ? (
+                            {loadingInteractions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (filteredInteractions.length > 0 ? (
                                 <>
                                 {interactionsPerTypeChart === "Pie" &&
                                     <PieChart
@@ -625,7 +662,7 @@ function Interactions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No interaction data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         }
                         

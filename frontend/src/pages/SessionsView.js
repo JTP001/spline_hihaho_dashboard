@@ -15,6 +15,7 @@ import axiosInstance from "../components/AxiosInstance";
 import TablePaginationWithJump from "../components/TablePaginationWithJump";
 import useAuthCheck from "../components/useAuthHook";
 import LoadingOrLogin from "../components/LoadingOrLogin";
+import { ThreeDots } from 'react-loading-icons';
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -25,6 +26,7 @@ function SessionsView() {
     const { user, loadingLogin } = useAuthCheck();
     const [videos, setVideos] = useState([]);
     const [sessions, setSessions] = useState([]);
+    const [loadingSessions, setLoadingSessions] = useState(false);
     const [browserBotFilter, setBrowserBotFilter] = useState([]);
     const [browserBotToggle, setBrowserBotToggle] = useState(true);
     const { videoFilter, setVideoFilter } = useVideoFilter();
@@ -42,12 +44,14 @@ function SessionsView() {
 
     //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
+        setLoadingSessions(true);
         axiosInstance.get("videos/")
             .then(res => {
                 const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
                 setVideos(videoList);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingSessions(false));
     }, []);
 
     useEffect(() => {
@@ -64,12 +68,14 @@ function SessionsView() {
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
+        setLoadingSessions(true);
         axiosInstance.get(`videos/${videoFilter}/view_sessions/`)
             .then(res => {
                 setSessions(res.data);
                 setPageNum(0);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingSessions(false));
     }, [videoFilter]);
 
     //----------------------------------Handle filtering----------------------------------//
@@ -226,13 +232,13 @@ function SessionsView() {
                                     classNamePrefix="select"
                                     value={videos.map(video => ({
                                         value: video.video_id,
-                                        label: `${video.title} (ID: ${video.video_id})`
+                                        label: `${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`
                                     })).find(option => option.value === videoFilter)}
                                     isSearchable={true}
                                     name="Video selection"
                                     options={videos.map(video => ({
                                         value:video.video_id,
-                                        label:`${video.title} (ID: ${video.video_id})`,
+                                        label:`${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`,
                                     }))}
                                     onChange={handleSelectVideoFilterChange}
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}
@@ -356,7 +362,12 @@ function SessionsView() {
                                     <button className="btn bg-info-subtle shadow-sm mx-2" onClick={() => setSessionByOsChart("Bar")}>Bar Chart</button>
                                 </div>
                             </div>
-                            {filteredSessions.length > 0 ? (
+                            {loadingSessions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (filteredSessions.length > 0 ? (
                                 <>
                                 {sessionByOsChart === "Pie" &&
                                     <>
@@ -395,7 +406,7 @@ function SessionsView() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No session data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         } {dataView === "Sessions by browser" &&
                             <div className="d-flex flex-column">
@@ -410,7 +421,12 @@ function SessionsView() {
                                     label={"Exclude bots and scrapers"}
                                 />
                             </div>
-                            {filteredSessions.length > 0 ? (
+                            {loadingSessions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (filteredSessions.length > 0 ? (
                                 <BarChart 
                                     xAxis={[{label:"Browser used", data: browserCountsBarChartData.map(grouping => grouping.browser)}]}
                                     yAxis={[{label:"Number of sessions", width:60}]}
@@ -434,11 +450,16 @@ function SessionsView() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No session data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         } {dataView === "Device breakdown" &&
                             <div className="d-flex flex-column">
-                            {filteredSessions.length > 0 ? (
+                            {loadingSessions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (filteredSessions.length > 0 ? (
                                 <div className="d-flex flex-column">
                                     <h6 className="text-center">Device Breakdown Pie Chart</h6>
                                     <PieChart
@@ -460,7 +481,7 @@ function SessionsView() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No session data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         }
                         

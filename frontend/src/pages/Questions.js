@@ -18,6 +18,7 @@ import CustomDatePicker from "../components/CustomDatePicker";
 import TablePaginationWithJump from "../components/TablePaginationWithJump";
 import useAuthCheck from "../components/useAuthHook";
 import LoadingOrLogin from "../components/LoadingOrLogin";
+import { ThreeDots } from 'react-loading-icons';
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -28,6 +29,7 @@ function Questions() {
     const { user, loadingLogin } = useAuthCheck();
     const [videos, setVideos] = useState([]);
     const [questions, setQuestions] = useState([]);
+    const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [selectedQuestion, setSelectedQuestion] = useState(null);
     const [answers, setAnswers] = useState([]);
     const { videoFilter, setVideoFilter } = useVideoFilter();
@@ -64,12 +66,14 @@ function Questions() {
 
     //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
+        setLoadingQuestions(true);
         axiosInstance.get("videos/")
             .then(res => {
                 const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
                 setVideos(videoList);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingQuestions(false));
     }, []);
 
     useEffect(() => {
@@ -86,6 +90,7 @@ function Questions() {
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
+        setLoadingQuestions(true);
         axiosInstance.get(`videos/${videoFilter}/questions/`)
             .then(res => {
                 const questionData = res.data.map(question => ({
@@ -105,12 +110,14 @@ function Questions() {
                     !['open', 'essay', 'vacancy', 'rating'].includes(question.type))[0]?.question_id
                 );
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingQuestions(false));
     }, [videoFilter]);
 
     useEffect(() => {
         if (!selectedQuestion) return;
 
+        setLoadingQuestions(true);
         axiosInstance.get(`videos/${selectedQuestion}/question_answers/`)
             .then(res => {
                 setAnswers(res.data);
@@ -118,6 +125,7 @@ function Questions() {
             .catch(err => {
                 console.error(err);
             })
+            .finally(() => setLoadingQuestions(false));
     }, [selectedQuestion]);
 
     //----------------------------------Handle filtering----------------------------------//
@@ -140,7 +148,7 @@ function Questions() {
                 question.created_at.isSameOrBefore(endDate.endOf("day"));
 
             const matchesTypeFilter = typeFilter.includes(question.type);
-            const matchesAvgTimeFilter = question.average_answer_time_seconds > avgTimeFilter;
+            const matchesAvgTimeFilter = question.average_answer_time_seconds >= avgTimeFilter;
             let matchesCorrectPercentFilter = true;
             if (correctPercentFilter === "≥ 25%") {matchesCorrectPercentFilter = question.percent_correct >= 25}
             else if (correctPercentFilter === "≤ 25%") {matchesCorrectPercentFilter = question.percent_correct <= 25}
@@ -209,7 +217,7 @@ function Questions() {
 
     //--------------------Create 'answers by questions' line chart data--------------------//
     const lineChartDataSorted = [...filteredQuestions].sort((a, b) => a.video_time_seconds - b.video_time_seconds)
-    const lineChartQuestions = lineChartDataSorted.map(question => `${question.title} (${question.video_time_seconds}s)`);
+    const lineChartQuestions = lineChartDataSorted.map(question => `${question.title.length > 30 ? question.title.slice(0, 27) + "..." : question.title} (${question.video_time_seconds}s)`);
     const lineChartAnswered = lineChartDataSorted.map(question => question.total_answered);
     const lineChartCorrectlyAnswered = lineChartDataSorted.map(question => question.total_correctly_answered);
 
@@ -222,14 +230,15 @@ function Questions() {
     
     //--------------------Create 'answered count by question' chart data--------------------//
     const answeredByQuestionBarData = answers.filter((answer) => answer.question.question_id === selectedQuestion)
-        .map((answer) => ({label:answer.label, value:answer.answered_count, color:answer.is_correct_answer ? "#0dcaef" : "tomato"}))
+        .map((answer) => {
+            const label = answer.label.length > 30 ? answer.label.slice(0, 27) + "..." : answer.label
+            return {label:label, value:answer.answered_count, color:answer.is_correct_answer ? "#0dcaef" : "tomato"}})
         .sort((a, b) => b.value - a.value);
 
     const answeredByQuestionPieData = answeredByQuestionBarData.map((answer, index) => {
             const question = questions.find(question => question.question_id === selectedQuestion);
             const percent = ((answer.value/question.total_answered) * 100).toFixed(1);
-            const label = answer.label.length > 30 ? answer.label.slice(0, 27) + "..." : answer.label
-            return {id:index, label:`"${label}": ${percent}% (${answer.value})`, value:answer.value, color:answer.color};
+            return {id:index, label:`"${answer.label}": ${percent}% (${answer.value})`, value:answer.value, color:answer.color};
         });
 
     //----------------------Create 'questions by type' chart data----------------------//
@@ -293,13 +302,13 @@ function Questions() {
                                     classNamePrefix="select"
                                     value={videos.map(video => ({
                                         value: video.video_id,
-                                        label: `${video.title} (ID: ${video.video_id})`
+                                        label: `${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`
                                     })).find(option => option.value === videoFilter)}
                                     isSearchable={true}
                                     name="Video selection"
                                     options={videos.map(video => ({
                                         value:video.video_id,
-                                        label:`${video.title} (ID: ${video.video_id})`,
+                                        label:`${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`,
                                     }))}
                                     onChange={handleSelectVideoFilterChange}
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}
@@ -424,7 +433,7 @@ function Questions() {
                                                                             onChange={() => setAvgTimeFilter(option)}
                                                                         />
                                                                     }
-                                                                    label={`> ${option}s`}
+                                                                    label={`≥ ${option}s`}
                                                                 />
                                                             )}
                                                         </Box>
@@ -434,9 +443,9 @@ function Questions() {
                                             </TableCell>
                                             <TableCell align="center">
                                                 <TableSortLabel 
-                                                    active={orderBy === "total_answred"}
-                                                    direction={orderBy === "total_answred" ? order : "desc"}
-                                                    onClick={() => handleTableSort("total_answred")}
+                                                    active={orderBy === "total_answered"}
+                                                    direction={orderBy === "total_answered" ? order : "desc"}
+                                                    onClick={() => handleTableSort("total_answered")}
                                                 >
                                                     Total Answers
                                                 </TableSortLabel> 
@@ -556,12 +565,12 @@ function Questions() {
                             </div>
                         } {dataView === "Correct answers per type graph" &&
                             <div className="d-flex flex-column">
-                            <div className="d-flex flex-row justify-content-center flex-wrap">
+                            <div className="d-flex flex-row justify-content-center flex-wrap align-items-center">
                                 <Tooltip arrow placement="top" title="Open, Form and Rating questions have no 'correct answer' and are therefore counted as having received 0 correct answers">
                                     {typesIncludeExclude ? (
-                                        <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("include"); setTypesIncludeExclude(false)}}>Include Open, Form and Rating questions</button>
+                                        <button className="btn bg-info-subtle my-3 p-3" onClick={() => {handleTypesIncludeExclude("include"); setTypesIncludeExclude(false)}}>Include Open, Form and Rating questions</button>
                                     ) : (
-                                        <button className="btn bg-info-subtle my-3" onClick={() => {handleTypesIncludeExclude("exclude"); setTypesIncludeExclude(true)}}>Exclude Open, Form and Rating questions</button>
+                                        <button className="btn bg-info-subtle my-3 p-3" onClick={() => {handleTypesIncludeExclude("exclude"); setTypesIncludeExclude(true)}}>Exclude Open, Form and Rating questions</button>
                                     )}
                                 </Tooltip>
                                 <Paper className="mx-2 my-3 d-flex justify-content-center rounded-5" elevation={2}>
@@ -581,7 +590,7 @@ function Questions() {
                                                             onChange={() => setAvgTimeFilter(option)}
                                                         />
                                                     }
-                                                    label={`> ${option}s`}
+                                                    label={`≥ ${option}s`}
                                                 />
                                             )}
                                         </Box>
@@ -595,7 +604,12 @@ function Questions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {qTypeBarChartData.length > 0 ? (
+                            {loadingQuestions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (qTypeBarChartData.length > 0 ? (
                                 <BarChart 
                                     xAxis={[{label:"Question type", data: qTypeBarChartData.map(grouping => grouping.type)}]}
                                     yAxis={[{label:"Total answers", width:60}]}
@@ -619,7 +633,7 @@ function Questions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No question data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         } {dataView === "Response breakdown graph" &&
                             <div className="d-flex flex-column">
@@ -634,7 +648,7 @@ function Questions() {
                                                 .filter((question) => !['open', 'essay', 'vacancy', 'rating'].includes(question.type))
                                                 .map(question => ({
                                                     value: question.question_id,
-                                                    label: `${question.title} (ID: ${question.question_id})`
+                                                    label: `${question.title.length > 30 ? question.title.slice(0, 27) + "..." : question.title} (ID: ${question.question_id})`
                                                 })).find(option => option.value === selectedQuestion)}
                                             isSearchable={true}
                                             name="Question selection"
@@ -642,7 +656,7 @@ function Questions() {
                                                 .filter((question) => !['open', 'essay', 'vacancy', 'rating'].includes(question.type))
                                                 .map(question => ({
                                                 value:question.question_id,
-                                                label:`${question.title} (ID: ${question.question_id})`,
+                                                label:`${question.title.length > 30 ? question.title.slice(0, 27) + "..." : question.title} (ID: ${question.question_id})`,
                                             }))}
                                             onChange={(selectedOption) => setSelectedQuestion(selectedOption.value)}
                                             styles={{menu:(provided) => ({...provided, zIndex:1500})}}
@@ -660,7 +674,12 @@ function Questions() {
                                     <Link to={`https://studio.hihaho.com/stats/${videos.find(video => video.video_id === videoFilter)?.uuid}`} target="_blank"><IconButton><BarChartIcon /></IconButton></Link>
                                 </div>
                             </div>
-                            {answeredByQuestionBarData.length > 0 ? (
+                            {loadingQuestions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (answeredByQuestionBarData.length > 0 ? (
                             <>
                                 {responseBreakdownChart === "Bar" &&
                                     <BarChart 
@@ -707,7 +726,7 @@ function Questions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No answer data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         } {dataView === "Total answers by questions graph" &&
                             <div className="d-flex flex-column justify-content-center">
@@ -734,7 +753,12 @@ function Questions() {
                                         )}
                                     </Tooltip>
                                 </div>
-                                {filteredQuestions.length > 1 ? (
+                                {loadingQuestions === true ? (
+                                    <div className="d-flex flex-column text-center">
+                                        <h5>Loading...</h5>
+                                        <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                    </div>
+                                ) : (filteredQuestions.length > 1 ? (
                                     <LineChart 
                                         xAxis={[{scaleType:'point', data:lineChartQuestions}]}
                                         series={[
@@ -748,7 +772,7 @@ function Questions() {
                                         <HighlightOffIcon className="mx-2"/>
                                         <h5>Too little data to display</h5>
                                     </Paper>
-                                )}
+                                ))}
                             </div>
                         } {dataView === "Questions per type graphs" &&
                             <div className="d-flex flex-column">
@@ -765,7 +789,12 @@ function Questions() {
                                     viewsList={['year', 'month', 'day']}
                                 />
                             </div>
-                            {filteredQuestions.length > 0 ? (
+                            {loadingQuestions === true ? (
+                                <div className="d-flex flex-column text-center">
+                                    <h5>Loading...</h5>
+                                    <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                </div>
+                            ) : (filteredQuestions.length > 0 ? (
                                 <>
                                 {questionsPerTypeChart === "Pie" &&
                                     <PieChart
@@ -801,7 +830,7 @@ function Questions() {
                                     <HighlightOffIcon className="mx-2"/>
                                     <h5>No question data to display</h5>
                                 </Paper>
-                            )}
+                            ))}
                             </div>
                         }
                         

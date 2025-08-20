@@ -15,6 +15,7 @@ import CustomDatePicker from "../components/CustomDatePicker";
 import TablePaginationWithJump from "../components/TablePaginationWithJump";
 import useAuthCheck from "../components/useAuthHook";
 import LoadingOrLogin from "../components/LoadingOrLogin";
+import { ThreeDots } from 'react-loading-icons';
 
 var isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 var isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
@@ -25,6 +26,7 @@ function MonthlyView() {
     const { user, loadingLogin } = useAuthCheck();
     const [videos, setVideos] = useState([]);
     const [monthlyData, setMonthlyData] = useState([]);
+    const [loadingMonthlyData, setLoadingMonthlyData] = useState(false);
     const { videoFilter, setVideoFilter } = useVideoFilter();
     const [dataView, setDataView] = useState("Views per month line chart");
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -44,12 +46,14 @@ function MonthlyView() {
 
     //------------------------------Get videos and set filter------------------------------//
     useEffect(() => {
+        setLoadingMonthlyData(true);
         axiosInstance.get("videos/")
             .then(res => {
                 const videoList = res.data//.sort((a, b) => a.title.localeCompare(b.title, ['en', 'ja']));
                 setVideos(videoList);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingMonthlyData(false));
     }, []);
 
     useEffect(() => {
@@ -66,6 +70,7 @@ function MonthlyView() {
     useEffect(() => {
         if (!videoFilter) return; // Ignore any attempts to call this before videoFilter is set
 
+        setLoadingMonthlyData(true);
         axiosInstance.get(`videos/${videoFilter}/monthly_views/`)
             .then(res => {
                 const monthData = res.data.map(month => ({ // Section that adds view_rate for table
@@ -81,7 +86,8 @@ function MonthlyView() {
                 setMonthlyData(monthData);
                 setPageNum(0);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoadingMonthlyData(false));
     }, [videoFilter]);
 
     //----------------------------------Handle filtering----------------------------------//
@@ -200,13 +206,13 @@ function MonthlyView() {
                                     classNamePrefix="select"
                                     value={videos.map(video => ({
                                         value: video.video_id,
-                                        label: `${video.title} (ID: ${video.video_id})`
+                                        label: `${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`
                                     })).find(option => option.value === videoFilter)}
                                     isSearchable={true}
                                     name="Video selection"
                                     options={videos.map(video => ({
                                         value:video.video_id,
-                                        label:`${video.title} (ID: ${video.video_id})`,
+                                        label:`${video.title.length > 30 ? video.title.slice(0, 27) + "..." : video.title} (ID: ${video.video_id})`,
                                     }))}
                                     onChange={handleSelectVideoFilterChange}
                                     styles={{menu:(provided) => ({...provided, zIndex:1500})}}
@@ -405,7 +411,12 @@ function MonthlyView() {
                                         label="Unfinished"
                                     />
                                 </FormGroup>
-                                {filteredMonthlyData.length > 0 ? (
+                                {loadingMonthlyData === true ? (
+                                    <div className="d-flex flex-column text-center">
+                                        <h5>Loading...</h5>
+                                        <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                    </div>
+                                ) : (filteredMonthlyData.length > 0 ? (
                                     <LineChart 
                                         xAxis={[{scaleType:'point', data:lineChartMonths}]}
                                         series={[
@@ -420,9 +431,9 @@ function MonthlyView() {
                                 ) : (
                                     <Paper className="mt-4 mx-auto d-flex flex-row flex-wrap justify-content-center rounded-5 p-3" elevation={2}>
                                         <HighlightOffIcon className="mx-2"/>
-                                        <h5>No interaction data to display</h5>
+                                        <h5>No monthly data to display</h5>
                                     </Paper>
-                                )}
+                                ))}
                             </div>
                         } {dataView === "Export" &&
                             <div className="d-flex flex-column justify-content-center">
