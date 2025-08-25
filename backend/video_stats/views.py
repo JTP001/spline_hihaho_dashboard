@@ -162,7 +162,7 @@ class ViewsByMonthSingleExportView(APIView):
         )
 
         try:
-            video = Video.objects.all().get(video_id=video_id)
+            video = Video.objects.get(video_id=video_id)
 
             csv_buffer = StringIO()
             csv_buffer.write("\ufeff")  # BOM for Excel needed to display Japanese text

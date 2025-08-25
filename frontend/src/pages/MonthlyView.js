@@ -194,6 +194,7 @@ function MonthlyView() {
             }
         }else {
             console.error("Not accepted export type");
+            setLoadingExport(false);
         }
     }
 
@@ -470,7 +471,7 @@ function MonthlyView() {
                                         Export (this video only)
                                     </button>
                                     <button className="mx-2 p-3 btn bg-info-subtle" 
-                                        onClick={() => handleExport(exportStartingDate.format("YYYY-MM"), exportEndingDate.format("YYYY-MM"), "all")}>
+                                        onClick={() => handleExport(exportStartingDate.format("YYYY-MM"), exportEndingDate.format("YYYY-MM"), "filter")}>
                                         Export (all videos)
                                     </button>
                                 </div>
