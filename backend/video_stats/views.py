@@ -4,12 +4,14 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .pagination import ViewPagination
 from django.http import HttpResponse, JsonResponse
-from datetime import datetime
+from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
+from django.utils import timezone
 from calendar import monthrange
 from .models import Video
 from .serializers import *
 from io import StringIO
+import warnings
 import requests
 import csv
 import json
@@ -88,45 +90,14 @@ class MonthlyViewsByVideoView(generics.ListAPIView):
 class ViewsByMonthFilteredExportView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, month):
-        try:
-            year, month_num = map(int, month.split('-'))
-            last_day = monthrange(year, month_num)[1]
-            end_of_month = datetime(year, month_num, last_day, 23, 59, 59)
+    def get(self, request, startMonth, endMonth):
+        warnings.filterwarnings(
+            "ignore",
+            message="DateTimeField .* received a naive datetime",
+            category=RuntimeWarning,
+            module='django.db.models.fields'
+        )
 
-            # Uses the last day of the given month and filters for only vides before that last day (lte = less than equals)
-            videos = Video.objects.all().filter(created_date__lte=end_of_month).order_by("video_id")
-
-            csv_buffer = StringIO()
-            csv_buffer.write("\ufeff")  # BOM for Excel needed to display Japanese text
-            writer = csv.writer(csv_buffer)
-
-            # Header row
-            writer.writerow([
-                "Video ID", "Video title", "Total Views"
-            ])
-
-            for video in videos:
-                month_stats = MonthlyViews.objects.filter(video__video_id=video.video_id, month=month).first()
-
-                total_views = month_stats.total_views if month_stats else 0
-
-                writer.writerow([
-                    video.video_id, video.title, total_views
-                ])
-
-            # HTTP response
-            response = HttpResponse(csv_buffer.getvalue(), content_type="text/csv; charset=utf-8")
-            response["Content-Disposition"] = f'attachment; filename="{month}_views_data.csv"'
-            return response
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-class ViewsByMonthAllExportView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, month):
         try:
             videos = Video.objects.all().order_by("video_id")
 
@@ -134,23 +105,99 @@ class ViewsByMonthAllExportView(APIView):
             csv_buffer.write("\ufeff")  # BOM for Excel needed to display Japanese text
             writer = csv.writer(csv_buffer)
 
+            
+            start_year, start_month = map(int, startMonth.split('-'))
+            end_year, end_month = map(int, endMonth.split('-'))
+
+            startDate = date(start_year, start_month, 1)
+            endDate = date(end_year, end_month, 1)
+
+            y_m_months_list = []
+            current_date = startDate
+
+            while current_date <= endDate:
+                y_m_months_list.append(current_date.strftime('%Y-%m'))
+                current_date += relativedelta(months=1)
+
             # Header row
             writer.writerow([
-                "Video ID", "Video title", "Total Views"
+                "Month", "Video ID", "Video title", "Total Views"
             ])
 
             for video in videos:
-                month_stats = MonthlyViews.objects.filter(video__video_id=video.video_id, month=month).first()
+                for y_m_month in y_m_months_list:
+                    year, month = map(int, y_m_month.split('-'))
+                    last_day = monthrange(year, month)[1]
+                    end_of_month = timezone.make_aware(
+                        datetime(year, month, last_day, 23, 59, 59),
+                        timezone.get_default_timezone()
+                    )
+
+                    if video.created_date <= end_of_month:
+                        month_stats = MonthlyViews.objects.filter(video__video_id=video.video_id, month=y_m_month).first()
+
+                        total_views = month_stats.total_views if month_stats else 0
+
+                        writer.writerow([
+                            y_m_month, video.video_id, video.title, total_views
+                        ])
+
+            # HTTP response
+            response = HttpResponse(csv_buffer.getvalue(), content_type="text/csv; charset=utf-8")
+            response["Content-Disposition"] = f'attachment; filename="{startMonth}_to_{endMonth}_views_filtered_data.csv"'
+            return response
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class ViewsByMonthSingleExportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, video_id, startMonth, endMonth):
+        warnings.filterwarnings(
+            "ignore",
+            message="DateTimeField .* received a naive datetime",
+            category=RuntimeWarning,
+            module='django.db.models.fields'
+        )
+
+        try:
+            video = Video.objects.get(video_id=video_id)
+
+            csv_buffer = StringIO()
+            csv_buffer.write("\ufeff")  # BOM for Excel needed to display Japanese text
+            writer = csv.writer(csv_buffer)
+
+            start_year, start_month = map(int, startMonth.split('-'))
+            end_year, end_month = map(int, endMonth.split('-'))
+
+            startDate = date(start_year, start_month, 1)
+            endDate = date(end_year, end_month, 1)
+
+            months_list = []
+            current_date = startDate
+
+            while current_date <= endDate:
+                months_list.append(current_date.strftime('%Y-%m'))
+                current_date += relativedelta(months=1)
+
+            # Header row
+            writer.writerow([
+                "Month", "Video ID", "Video title", "Total Views"
+            ])
+
+            for month in months_list:
+                month_stats = MonthlyViews.objects.filter(video__video_id=video_id, month=month).first()
 
                 total_views = month_stats.total_views if month_stats else 0
 
                 writer.writerow([
-                    video.video_id, video.title, total_views
+                    month, video_id, video.title, total_views
                 ])
 
             # HTTP response
             response = HttpResponse(csv_buffer.getvalue(), content_type="text/csv; charset=utf-8")
-            response["Content-Disposition"] = f'attachment; filename="{month}_views_data.csv"'
+            response["Content-Disposition"] = f'attachment; filename="{startMonth}_to_{endMonth}_views_single_data.csv"'
             return response
 
         except Exception as e:

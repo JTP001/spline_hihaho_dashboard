@@ -9,6 +9,7 @@ import { FormGroup, FormControlLabel, Checkbox, Paper, Tooltip, IconButton } fro
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import SummarizeIcon from '@mui/icons-material/Summarize';
+import KeyboardDoubleArrowDownIcon from '@mui/icons-material/KeyboardDoubleArrowDown';
 import dayjs from "dayjs";
 import axiosInstance from "../components/AxiosInstance";
 import CustomDatePicker from "../components/CustomDatePicker";
@@ -27,6 +28,7 @@ function MonthlyView() {
     const [videos, setVideos] = useState([]);
     const [monthlyData, setMonthlyData] = useState([]);
     const [loadingMonthlyData, setLoadingMonthlyData] = useState(false);
+    const [loadingExport, setLoadingExport] = useState(false);
     const { videoFilter, setVideoFilter } = useVideoFilter();
     const [dataView, setDataView] = useState("Views per month line chart");
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -35,7 +37,8 @@ function MonthlyView() {
     const [order, setOrder] = useState("asc");
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
-    const [exportDate, setExportDate] = useState(dayjs());
+    const [exportStartingDate, setExportStartingDate] = useState(dayjs("2020-01-01"));
+    const [exportEndingDate, setExportEndingDate] = useState(dayjs());
     const [lineChartVisible, setLineChartVisible] = useState({
         started: true,
         finished: true,
@@ -149,43 +152,49 @@ function MonthlyView() {
     };
 
     //----------------------------------Handle export----------------------------------//
-    const handleExport = async (month, exportType) => {
+    const handleExport = async (startMonth, endMonth, exportType) => {
+        setLoadingExport(true);
         if (exportType === "filter") {
             try {
-                const response = await axiosInstance.get(`videos/export/monthly_views/${month}/`, {
+                const response = await axiosInstance.get(`videos/export/monthly_views/${startMonth}/${endMonth}/`, {
                 responseType: "blob",
             });
             // Sets up the link to download the CSV, then goes to it and cleans up afterwards
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement("a");
             link.href = url;
-            link.setAttribute("download", `${month}_views_filtered_data.csv`);
+            link.setAttribute("download", `${startMonth}_to_${endMonth}_views_filtered_data.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
             } catch (error) {
                 console.error("Error downloading CSV", error);
+            } finally {
+                setLoadingExport(false);
             }
-        } else if (exportType === "all") {
+        } else if (exportType === "single") {
             try {
-                const response = await axiosInstance.get(`videos/export/monthly_views/${month}/all/`, {
+                const response = await axiosInstance.get(`videos/${videoFilter}/export/monthly_views/${startMonth}/${endMonth}/`, {
                 responseType: "blob",
             });
             // Sets up the link to download the CSV, then goes to it and cleans up afterwards
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement("a");
             link.href = url;
-            link.setAttribute("download", `${month}_views_all_data.csv`);
+            link.setAttribute("download", `${startMonth}_to_${endMonth}_views_single_data.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
             } catch (error) {
                 console.error("Error downloading CSV", error);
+            } finally {
+                setLoadingExport(false);
             }
         }else {
             console.error("Not accepted export type");
+            setLoadingExport(false);
         }
     }
 
@@ -436,19 +445,42 @@ function MonthlyView() {
                                 ))}
                             </div>
                         } {dataView === "Export" &&
-                            <div className="d-flex flex-column justify-content-center">
-                                <DatePicker className="mx-auto my-3 shadow-sm" label="Month to export" 
-                                    views={['year', 'month']}
-                                    value={exportDate}
-                                    onChange={date => setExportDate(date)} 
-                                    disableFuture
-                                    minDate={dayjs('2000-01-01')}
-                                    maxDate={dayjs()}
-                                />
-                                <div className="d-flex flex-row justify-content-around my-3 mx-auto flex-wrap">
-                                    <button className="mx-2 p-3 btn bg-info-subtle" onClick={() => handleExport(exportDate.format("YYYY-MM"), "filter")}>Export (excluding not yet created videos)</button>
-                                    <button className="mx-2 p-3 btn bg-info-subtle" onClick={() => handleExport(exportDate.format("YYYY-MM"), "all")}>Export All</button>
+                            <div className="d-flex flex-column justify-content-center mt-5">
+                                <div className="d-flex flex-row justify-content-center">
+                                    <DatePicker className="mx-2 my-3 shadow-sm" label="Starting month to export" 
+                                        views={['year', 'month']}
+                                        value={exportStartingDate}
+                                        onChange={date => setExportStartingDate(date)} 
+                                        disableFuture
+                                        minDate={dayjs('2000-01-01')}
+                                        maxDate={exportEndingDate}
+                                    />
+                                    <DatePicker className="mx-2 my-3 shadow-sm" label="Ending month to export" 
+                                        views={['year', 'month']}
+                                        value={exportEndingDate}
+                                        onChange={date => setExportEndingDate(date)} 
+                                        disableFuture
+                                        minDate={exportStartingDate}
+                                        maxDate={dayjs()}
+                                    />
                                 </div>
+                                <KeyboardDoubleArrowDownIcon className="mx-auto fs-1"/>
+                                <div className="d-flex flex-row justify-content-around my-3 mx-auto flex-wrap">
+                                    <button className="mx-2 p-3 btn bg-info-subtle" 
+                                        onClick={() => handleExport(exportStartingDate.format("YYYY-MM"), exportEndingDate.format("YYYY-MM"), "single")}>
+                                        Export (this video only)
+                                    </button>
+                                    <button className="mx-2 p-3 btn bg-info-subtle" 
+                                        onClick={() => handleExport(exportStartingDate.format("YYYY-MM"), exportEndingDate.format("YYYY-MM"), "filter")}>
+                                        Export (all videos)
+                                    </button>
+                                </div>
+                                {loadingExport &&
+                                    <div className="d-flex flex-column text-center my-2">
+                                        <h5>Loading export file...</h5>
+                                        <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
+                                    </div>
+                                }
                             </div>
                         }
                         
