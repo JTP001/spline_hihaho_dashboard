@@ -3,7 +3,6 @@ from video_stats.models import *
 from dateutil import parser
 from datetime import date
 from user_agents import parse
-import datetime
 import requests
 import warnings
 import os
@@ -27,8 +26,6 @@ def get_data_safe(url, params=None):
         return None
 
 class Command(BaseCommand):
-    help = 'Fetch all Hihaho type 3 video data and stats'
-
     warnings.filterwarnings(
         "ignore",
         message="DateTimeField .* received a naive datetime",

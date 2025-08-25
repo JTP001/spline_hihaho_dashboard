@@ -83,29 +83,32 @@ function Interactions() {
                 // Get the video duration and prepare the line chart data only after interactions is fetched
                 if (videoFilter) {
                 axiosInstance.get(`videos/${videoFilter}/stats/`)
-                    .then(res => {
-                        const bucketSizeSeconds = Math.max(1, Math.round((res.data[0].video_duration_seconds * 0.05)*100/100));
-                        const bucketItems = new Array(Math.ceil(res.data[0].video_duration_seconds / bucketSizeSeconds)).fill(0);
+                    .then(response => {
+                        if (response.data.length > 0) {
+                            const videoStats = response.data[0]
+                            const bucketSizeSeconds = Math.max(1, Math.round((videoStats.video_duration_seconds * 0.05)*100/100));
+                            const bucketItems = new Array(Math.ceil(videoStats.video_duration_seconds / bucketSizeSeconds)).fill(0);
 
-                        let shortInteractions = interactionsData;
-                        if (durationBound !== 0) {
-                            shortInteractions = interactionsData.filter(interaction => {
-                                return interaction.duration_seconds <= durationBound}
-                            );
-                        };
-                        shortInteractions.forEach(interaction => {
-                            const bucketIndex = Math.floor(interaction.start_time_seconds / bucketSizeSeconds);
-                            if (bucketIndex >= 0 && bucketIndex < bucketItems.length) {
-                                bucketItems[bucketIndex] += interaction.total_clicks;
-                            } else {
-                                console.error(
-                                    `Skipping interaction with start_time_seconds ${interaction.start_time_seconds}, `
-                                    + `bucketIndex ${bucketIndex}, video duration: ${res.data[0].video_duration_seconds}`
+                            let shortInteractions = interactionsData;
+                            if (durationBound !== 0) {
+                                shortInteractions = interactionsData.filter(interaction => {
+                                    return interaction.duration_seconds <= durationBound}
                                 );
-                            }
-                        });
-                        setBucketSize(bucketSizeSeconds)
-                        setBucketArray(bucketItems);
+                            };
+                            shortInteractions.forEach(interaction => {
+                                const bucketIndex = Math.floor(interaction.start_time_seconds / bucketSizeSeconds);
+                                if (bucketIndex >= 0 && bucketIndex < bucketItems.length) {
+                                    bucketItems[bucketIndex] += interaction.total_clicks;
+                                } else {
+                                    console.error(
+                                        `Skipping interaction with start_time_seconds ${interaction.start_time_seconds}, `
+                                        + `bucketIndex ${bucketIndex}, video duration: ${videoStats.video_duration_seconds}`
+                                    );
+                                }
+                            });
+                            setBucketSize(bucketSizeSeconds)
+                            setBucketArray(bucketItems);
+                        }
                     })
                     .finally(() => {
                         setLoadingInteractions(false);
