@@ -159,6 +159,12 @@ function MonthlyView() {
                 const response = await axiosInstance.get(`videos/export/monthly_views/${startMonth}/${endMonth}/`, {
                 responseType: "blob",
             });
+            if (!response.headers['content-type'].includes('text/csv')) {
+                console.log(response.headers);
+                console.error("Server did not return a CSV file");
+                return;
+            }
+
             // Sets up the link to download the CSV, then goes to it and cleans up afterwards
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement("a");
@@ -178,11 +184,17 @@ function MonthlyView() {
                 const response = await axiosInstance.get(`videos/${videoFilter}/export/monthly_views/${startMonth}/${endMonth}/`, {
                 responseType: "blob",
             });
+            if (!response.headers['content-type'].includes('text/csv')) {
+                console.log(response.headers);
+                console.error("Server did not return a CSV file");
+                return;
+            }
+
             // Sets up the link to download the CSV, then goes to it and cleans up afterwards
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement("a");
             link.href = url;
-            link.setAttribute("download", `${startMonth}_to_${endMonth}_views_single_data.csv`);
+            link.setAttribute("download", `${videoFilter}_${startMonth}_to_${endMonth}_views_single_data.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -477,7 +489,8 @@ function MonthlyView() {
                                 </div>
                                 {loadingExport &&
                                     <div className="d-flex flex-column text-center my-2">
-                                        <h5>Loading export file...</h5>
+                                        <h5>Exporting your file, please wait...</h5>
+                                        <p>(If you have a lot of videos, exporting monthly data for all videos will take a long time)</p>
                                         <ThreeDots className="mx-auto my-2" stroke="#0bb5d8" speed={1} width={150}/>
                                     </div>
                                 }

@@ -6,6 +6,8 @@ from .pagination import ViewPagination
 from django.http import HttpResponse, JsonResponse
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
+from django.http import StreamingHttpResponse
+from django.utils.encoding import smart_str
 from django.utils import timezone
 from calendar import monthrange
 from .models import Video
@@ -86,6 +88,12 @@ class MonthlyViewsByVideoView(generics.ListAPIView):
     def get_queryset(self):
         video_id = self.kwargs["video_id"]
         return MonthlyViews.objects.filter(video__video_id=video_id)
+    
+class Echo:
+    """An object that implements just the write method of the file-like interface.
+    Used specifically in the monthly export views for CSV output streaming."""
+    def write(self, value):
+        return value
         
 class ViewsByMonthFilteredExportView(APIView):
     permission_classes = [IsAuthenticated]
@@ -100,11 +108,6 @@ class ViewsByMonthFilteredExportView(APIView):
 
         try:
             videos = Video.objects.all().order_by("video_id")
-
-            csv_buffer = StringIO()
-            csv_buffer.write("\ufeff")  # BOM for Excel needed to display Japanese text
-            writer = csv.writer(csv_buffer)
-
             
             start_year, start_month = map(int, startMonth.split('-'))
             end_year, end_month = map(int, endMonth.split('-'))
@@ -119,32 +122,47 @@ class ViewsByMonthFilteredExportView(APIView):
                 y_m_months_list.append(current_date.strftime('%Y-%m'))
                 current_date += relativedelta(months=1)
 
-            # Header row
-            writer.writerow([
-                "Month", "Video ID", "Video title", "Total Views"
-            ])
+            def row_generator():
+                # BOM for Excel to handle Japanese text
+                yield "\ufeff"
 
-            for video in videos:
-                for y_m_month in y_m_months_list:
-                    year, month = map(int, y_m_month.split('-'))
-                    last_day = monthrange(year, month)[1]
-                    end_of_month = timezone.make_aware(
-                        datetime(year, month, last_day, 23, 59, 59),
-                        timezone.get_default_timezone()
-                    )
+                pseudo_buffer = Echo()
+                writer = csv.writer(pseudo_buffer)
 
-                    if video.created_date <= end_of_month:
-                        month_stats = MonthlyViews.objects.filter(video__video_id=video.video_id, month=y_m_month).first()
+                # Header
+                yield writer.writerow(["Month", "Video ID", "Video title", "Total Views"])
 
-                        total_views = month_stats.total_views if month_stats else 0
+                for video in videos.iterator():
+                    for y_m_month in y_m_months_list:
+                        year, month = map(int, y_m_month.split('-'))
+                        last_day = monthrange(year, month)[1]
+                        end_of_month = timezone.make_aware(
+                            datetime(year, month, last_day, 23, 59, 59),
+                            timezone.get_default_timezone()
+                        )
 
-                        writer.writerow([
-                            y_m_month, video.video_id, video.title, total_views
-                        ])
+                        if video.created_date <= end_of_month:
+                            month_stats = MonthlyViews.objects.filter(
+                                video__video_id=video.video_id, month=y_m_month
+                            ).first()
 
-            # HTTP response
-            response = HttpResponse(csv_buffer.getvalue(), content_type="text/csv; charset=utf-8")
-            response["Content-Disposition"] = f'attachment; filename="{startMonth}_to_{endMonth}_views_filtered_data.csv"'
+                            total_views = month_stats.total_views if month_stats else 0
+
+                            yield writer.writerow([
+                                y_m_month,
+                                video.video_id,
+                                video.title,
+                                total_views
+                            ])
+
+            # Streaming response so that the frontend worker doesn't time out on deployed version
+            response = StreamingHttpResponse(
+                row_generator(),
+                content_type="text/csv; charset=utf-8"
+            )
+            response["Content-Disposition"] = (
+                f'attachment; filename="{startMonth}_to_{endMonth}_views_filtered_data.csv"'
+            )
             return response
 
         except Exception as e:
@@ -164,40 +182,59 @@ class ViewsByMonthSingleExportView(APIView):
         try:
             video = Video.objects.get(video_id=video_id)
 
-            csv_buffer = StringIO()
-            csv_buffer.write("\ufeff")  # BOM for Excel needed to display Japanese text
-            writer = csv.writer(csv_buffer)
-
             start_year, start_month = map(int, startMonth.split('-'))
             end_year, end_month = map(int, endMonth.split('-'))
 
             startDate = date(start_year, start_month, 1)
             endDate = date(end_year, end_month, 1)
 
-            months_list = []
+            y_m_months_list = []
             current_date = startDate
 
             while current_date <= endDate:
-                months_list.append(current_date.strftime('%Y-%m'))
+                y_m_months_list.append(current_date.strftime('%Y-%m'))
                 current_date += relativedelta(months=1)
 
-            # Header row
-            writer.writerow([
-                "Month", "Video ID", "Video title", "Total Views"
-            ])
+            def row_generator():
+                # BOM for Excel to handle Japanese text
+                yield "\ufeff"
 
-            for month in months_list:
-                month_stats = MonthlyViews.objects.filter(video__video_id=video_id, month=month).first()
+                pseudo_buffer = Echo()
+                writer = csv.writer(pseudo_buffer)
 
-                total_views = month_stats.total_views if month_stats else 0
+                # Header
+                yield writer.writerow(["Month", "Video ID", "Video title", "Total Views"])
 
-                writer.writerow([
-                    month, video_id, video.title, total_views
-                ])
+                for y_m_month in y_m_months_list:
+                    year, month = map(int, y_m_month.split('-'))
+                    last_day = monthrange(year, month)[1]
+                    end_of_month = timezone.make_aware(
+                        datetime(year, month, last_day, 23, 59, 59),
+                        timezone.get_default_timezone()
+                    )
 
-            # HTTP response
-            response = HttpResponse(csv_buffer.getvalue(), content_type="text/csv; charset=utf-8")
-            response["Content-Disposition"] = f'attachment; filename="{startMonth}_to_{endMonth}_views_single_data.csv"'
+                    if video.created_date <= end_of_month:
+                        month_stats = MonthlyViews.objects.filter(
+                            video__video_id=video.video_id, month=y_m_month
+                        ).first()
+
+                        total_views = month_stats.total_views if month_stats else 0
+
+                        yield writer.writerow([
+                            y_m_month,
+                            video.video_id,
+                            video.title,
+                            total_views
+                        ])
+
+            # Streaming response so that the frontend worker doesn't time out on deployed version
+            response = StreamingHttpResponse(
+                row_generator(),
+                content_type="text/csv; charset=utf-8"
+            )
+            response["Content-Disposition"] = (
+                f'attachment; filename="{video_id}_{startMonth}_to_{endMonth}_views_single_data.csv"'
+            )
             return response
 
         except Exception as e:
