@@ -96,6 +96,6 @@ class ContentTogglesUpdateView(generics.UpdateAPIView):
     
 class UserLogsListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = UserLogs.objects.all()
+    queryset = UserLogs.objects.all().order_by('-timestamp')
     serializer_class = UserLogsSerializer
     pagination_class = UserLogsPagination
