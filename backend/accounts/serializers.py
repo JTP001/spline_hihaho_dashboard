@@ -72,3 +72,10 @@ class ContentTogglesUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContentToggles
         fields = ("benesse_toggle",)
+
+class UserLogsSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer(read_only=True)
+
+    class Meta:
+        model = UserLogs
+        fields = ["id", "user", "message", "timestamp"]
