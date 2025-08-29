@@ -13,4 +13,5 @@ urlpatterns = [
     path('user/delete/<int:id>/', DeleteUserView.as_view(), name='user_delete'),
     path('user/content-toggles/', ContentToggleByUserView.as_view(), name='user_content_toggles'),
     path('user/content-toggles/update/', ContentTogglesUpdateView.as_view(), name='user_content_toggles_update'),
+    path('user/logs/', UserLogsListView.as_view(), name='user_logs'),
 ]

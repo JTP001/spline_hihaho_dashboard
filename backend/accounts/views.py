@@ -1,12 +1,13 @@
-from rest_framework.generics import GenericAPIView, RetrieveAPIView, RetrieveUpdateAPIView, UpdateAPIView, ListAPIView, DestroyAPIView
+from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
 from .serializers import *
+from .pagination import *
 
-class UserRegistrationAPIView(GenericAPIView):
+class UserRegistrationAPIView(generics.GenericAPIView):
     permission_classes = [IsAdminUser]
     serializer_class = UserRegistrationSerializer
 
@@ -20,7 +21,7 @@ class UserRegistrationAPIView(GenericAPIView):
                           'access':str(token.access_token)}
         return Response(data, status=status.HTTP_201_CREATED)
                         
-class UserLoginAPIView(GenericAPIView):
+class UserLoginAPIView(generics.GenericAPIView):
     permission_classes = (AllowAny,)
     serializer_class = UserLoginSerializer
 
@@ -33,9 +34,10 @@ class UserLoginAPIView(GenericAPIView):
         data = serializer.data
         data['tokens'] = {'refresh':str(token),
                           'access':str(token.access_token)}
+        UserLogs.objects.create(user=user, message=f"{user.username} logged in")
         return Response(data, status=status.HTTP_200_OK)
 
-class UserLogoutAPIView(GenericAPIView):
+class UserLogoutAPIView(generics.GenericAPIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
@@ -47,28 +49,28 @@ class UserLogoutAPIView(GenericAPIView):
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
-class UserUpdateView(RetrieveUpdateAPIView):
+class UserUpdateView(generics.RetrieveUpdateAPIView):
     serializer_class = UserUpdateSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
         return self.request.user
         
-class UserAPIView(RetrieveAPIView):
+class UserAPIView(generics.RetrieveAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = CustomUserSerializer
 
     def get_object(self):
         return self.request.user
     
-class ListUsersView(ListAPIView):
+class ListUsersView(generics.ListAPIView):
     permission_classes = [IsAdminUser]
     serializer_class = CustomUserSerializer
 
     def get_queryset(self):
         return CustomUser.objects.exclude(id=self.request.user.id)
     
-class DeleteUserView(DestroyAPIView):
+class DeleteUserView(generics.DestroyAPIView):
     permission_classes = [IsAdminUser]
     queryset = CustomUser.objects.all()
     lookup_field = "id"
@@ -78,16 +80,22 @@ class DeleteUserView(DestroyAPIView):
             raise ValidationError("You cannot delete your own account.")
         instance.delete()
     
-class ContentToggleByUserView(RetrieveAPIView):
+class ContentToggleByUserView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ContentTogglesSerializer
 
     def get_object(self):
         return self.request.user.content_toggles
 
-class ContentTogglesUpdateView(UpdateAPIView):
+class ContentTogglesUpdateView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ContentTogglesUpdateSerializer
 
     def get_object(self):
         return self.request.user.content_toggles
+    
+class UserLogsListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = UserLogs.objects.all().order_by('-timestamp')
+    serializer_class = UserLogsSerializer
+    pagination_class = UserLogsPagination
