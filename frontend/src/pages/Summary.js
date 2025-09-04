@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useMediaQuery } from 'react-responsive';
 import Layout from "../components/Layout";
 import { Link, useLocation } from "react-router-dom";
 import { useVideoFilter } from '../context/VideoFilterContext';
@@ -68,6 +69,7 @@ function Summary() {
     const [startDate, setStartDate] = useState(dayjs("2020-01-01"));
     const [endDate, setEndDate] = useState(dayjs());
     const location = useLocation();
+    const isLaptopScreen = useMediaQuery({ query: '(max-width: 1920px)' });
     const videoIdFromOtherPageFlag = location.state?.videoIdFromOtherPageFlag || false; // Default to false if undefined
     const piePallette = ["#0dcaef", "sandybrown", "lightgreen", "tomato", "mediumorchid", "khaki", "lightpink", "chocolate", "darksalmon", "aquamarine", "bisque", "green", "purple", "orange", "brown", "darkcyan"];
     const statusFilterText = [
@@ -394,7 +396,7 @@ function Summary() {
     return (
         <Layout>
             {user ? (
-                <div className="container rounded min-vh-100">
+                <div className={isLaptopScreen ? "container rounded min-vh-100" : "rounded min-vh-100"}>
                     <div className="mx-3 d-flex flex-column">
                         <div className="my-2 d-flex flex-row justify-content-center">
                             <h1>Video Statistics Summary</h1>
@@ -661,7 +663,6 @@ function Summary() {
                                             </TableCell>
                                             <TableCell align="center">Hihaho Folder</TableCell>
                                             <TableCell align="center">Hihaho Links</TableCell>
-                                            <TableCell align="center">Details</TableCell>
                                             <TableCell align="center">
                                                 <TableSortLabel 
                                                     active={orderBy === "video.created_date"}
@@ -671,7 +672,6 @@ function Summary() {
                                                     Date Created
                                                 </TableSortLabel> 
                                             </TableCell>
-                                            <TableCell align="center">JSON</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -692,7 +692,7 @@ function Summary() {
                                                     </button>
                                                 </TableCell>
                                                 <TableCell className="border" align="center">
-                                                    <Box sx={{width: 250, maxWidth: 250}}>
+                                                    <Box className="d-flex flex-column" sx={{width: 250, maxWidth: 250}}>
                                                         <button className="btn" onClick={() => {
                                                             if (searchQuery === "") {
                                                                 setSearchQuery("\"" + videoStat.video.title + "\"");
@@ -703,6 +703,23 @@ function Summary() {
                                                         }}>
                                                             {videoStat.video.title}
                                                         </button>
+                                                        <div className="mt-1 d-flex flex-row justify-content-center">
+                                                            <Tooltip arrow title="See interaction details" placement="bottom">
+                                                                <Link to="/interactions/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><AdsClickIcon/></IconButton></Link>
+                                                            </Tooltip>
+                                                            <Tooltip arrow title="See question details" placement="bottom">
+                                                                <Link to="/questions/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><HelpOutlineIcon/></IconButton></Link>
+                                                            </Tooltip>
+                                                            <Tooltip arrow title="See monthly view details" placement="bottom">
+                                                                <Link to="/monthlyview/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><SsidChartIcon/></IconButton></Link>
+                                                            </Tooltip>
+                                                            <Tooltip arrow title="See session view details" placement="bottom">
+                                                                <Link to="/sessionsview/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><SlideshowIcon/></IconButton></Link>
+                                                            </Tooltip>
+                                                            <Tooltip arrow title="Export to JSON" placement="bottom">
+                                                                <IconButton onClick={() => handleJsonExport(videoStat.video.video_id)}><DataObjectIcon /></IconButton>
+                                                            </Tooltip>
+                                                        </div>
                                                     </Box>
                                                 </TableCell>
                                                 <TableCell className="border" align="right">
@@ -764,22 +781,7 @@ function Summary() {
                                                         <Link to={`https://studio.hihaho.com/enrich/${videoStat.video.uuid}`} target="_blank"><IconButton><EditNoteIcon/></IconButton></Link>
                                                     </Tooltip>                                                
                                                 </TableCell>
-                                                <TableCell className="border" align="center">
-                                                    <Tooltip arrow title="See interaction details" placement="right-end">
-                                                        <Link to="/interactions/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><AdsClickIcon/></IconButton></Link>
-                                                    </Tooltip>
-                                                    <Tooltip arrow title="See question details" placement="right-end">
-                                                        <Link to="/questions/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><HelpOutlineIcon/></IconButton></Link>
-                                                    </Tooltip>
-                                                    <Tooltip arrow title="See monthly view details" placement="right-end">
-                                                        <Link to="/monthlyview/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><SsidChartIcon/></IconButton></Link>
-                                                    </Tooltip>
-                                                    <Tooltip arrow title="See session view details" placement="right-end">
-                                                        <Link to="/sessionsview/" onClick={() => setVideoFilter(videoStat.video.video_id)}><IconButton><SlideshowIcon/></IconButton></Link>
-                                                    </Tooltip>
-                                                </TableCell>
                                                 <TableCell className="border" align="center">{videoStat.video.created_date.format("MMM D, YYYY")}</TableCell>
-                                                <TableCell className="border" align="center"><IconButton onClick={() => handleJsonExport(videoStat.video.video_id)}><DataObjectIcon /></IconButton></TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
